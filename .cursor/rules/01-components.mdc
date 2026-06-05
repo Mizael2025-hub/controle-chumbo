@@ -1,0 +1,56 @@
+---
+description: Regras para componentes React e arquivos TSX
+globs: ["src/components/**/*.tsx", "src/app/**/*.tsx"]
+alwaysApply: false
+---
+
+# Regras para Componentes React
+
+## Arquitetura de componentes
+
+- `src/components/ui/` → primitivos visuais iOS reutilizáveis, sem lógica de negócio.
+- `src/components/layout/` → Navbar, Sidebar, TabBar, HeaderSyncStatus. Sem lógica de negócio.
+- `src/components/features/` → componentes com regra de negócio. Organizar por domínio.
+- Componentes com mais de 200 linhas devem ser divididos.
+
+## Server vs Client Components
+
+- `page.tsx` → Server Component por padrão (leitura de dados, sem interação).
+- Adicionar `'use client'` APENAS quando necessário: estado, eventos, hooks de browser.
+- Nunca usar `useEffect` para buscar dados — usar Server Components + fetch.
+- `loading.tsx` obrigatório em toda rota que faz fetch.
+- `error.tsx` obrigatório em toda rota com operações críticas.
+
+## Formulários
+
+- Obrigatório: React Hook Form + Zod Resolver.
+- Nunca usar `<form onSubmit>` sem React Hook Form.
+- Todo input deve ter `data-testid` para testes E2E.
+- Datas: input com máscara ou placeholder `dd/MM/aaaa` — nunca ISO na UI.
+
+## Design System
+
+- Design System iOS obrigatório: `docs/COMPONENTS.md` + `docs/DESIGN_TOKENS.md`.
+- shadcn/ui opcional — se usar, aplicar tokens iOS por cima.
+- Ícones: Lucide React, tamanho `w-5 h-5`, strokeWidth={1.5}.
+- Cores e classes: somente Tailwind + tokens do design system.
+- Nunca criar estilos inline ou CSS modules — somente Tailwind.
+- Toast: sempre via Sonner (`toast.success`, `toast.error`, `toast.info`).
+- Mobile-first: interface em 375px (celular) e otimizada para tablet **1200×1920 px** (primário na fábrica).
+
+## Touch-First (PWA)
+
+- Preferir Cards selecionáveis, Toggles, Seletores amplos ao invés de inputs de texto.
+- Botões touch-target mínimo: 44px de altura.
+- Inputs de texto: font-size mínimo 16px (previne zoom no iOS).
+
+## Offline / Login Gate
+
+- Se Offline habilitado: envolver login com `LoginGate` (bloqueia sem internet).
+- Durante uso offline: não bloquear — salvar localmente e informar via toast.
+- Header deve exibir status de sync (`docs/OFFLINE.md`).
+
+## Data e Hora na UI
+
+- Sempre usar `formatarData()` e `formatarHora()` de `src/lib/utils/date-time.ts`.
+- Nunca exibir `2026-05-31` ou horário UTC ao usuário.

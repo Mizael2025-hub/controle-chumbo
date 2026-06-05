@@ -1,0 +1,18 @@
+{
+  "name": "Controle de Chumbo",
+  "short_name": "Chumbo",
+  "description": "Controle de estoque e consumo de chumbo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f4f5",
+  "theme_color": "#007AFF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

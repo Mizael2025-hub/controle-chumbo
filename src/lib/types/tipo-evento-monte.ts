@@ -1,0 +1,9 @@
+/** Tipos de evento em eventos_monte — ver docs/DATABASE.md */
+export const TIPOS_EVENTO_MONTE = {
+  RESERVA: 'RESERVA',
+  CANCELAMENTO_RESERVA: 'CANCELAMENTO_RESERVA',
+  MOVIDO_PARA_SETOR: 'MOVIDO_PARA_SETOR',
+  DEVOLVIDO_ALMOXARIFADO: 'DEVOLVIDO_ALMOXARIFADO',
+} as const
+
+export type TipoEventoMonte = (typeof TIPOS_EVENTO_MONTE)[keyof typeof TIPOS_EVENTO_MONTE]

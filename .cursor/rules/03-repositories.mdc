@@ -1,0 +1,79 @@
+---
+description: Regras para Repositories — acesso ao banco Supabase e Dexie
+globs: ["src/repositories/**/*.ts"]
+alwaysApply: false
+---
+
+# Regras para Repositories
+
+## Responsabilidade
+
+- Única camada que acessa Supabase ou Dexie diretamente.
+- Sem lógica de negócio — apenas queries e mapeamento de dados.
+- Sem validação Zod — responsabilidade da Action ou Service.
+- Sem autenticação — responsabilidade da Action.
+
+## Três arquivos por entidade
+
+```
+[entidade]-repository.ts           ← interface/tipo compartilhado
+[entidade]-repository.local.ts     ← DATA_SOURCE=local (Dexie)
+[entidade]-repository.supabase.ts  ← DATA_SOURCE=supabase (Supabase + RLS)
+```
+
+Selecionadas via factory em `src/lib/data-source/get-repository.ts`.
+
+## Padrão de nomenclatura — objeto com métodos CRUD
+
+```typescript
+export const registroRepository = {
+  async findById(id: string): Promise<Registro | null> {}
+  async findAll(filters?: FiltroType): Promise<Registro[]> {}
+  async create(data: CreateType): Promise<Registro> {}
+  async update(id: string, data: UpdateType): Promise<Registro | null> {}
+  async softDelete(id: string): Promise<void> {}
+}
+```
+
+## Template Supabase
+
+> Repository loga e relança erro; **service** converte para `AppError`.
+
+```typescript
+// [EXEMPLO] src/repositories/registro-repository.supabase.ts
+import { createServerSupabase } from '@/lib/supabase/server'
+
+export const registroRepository = {
+  async findById(id: string): Promise<Registro | null> {
+    const supabase = await createServerSupabase()
+    const { data, error } = await supabase.from('registros').select('*').eq('id', id).single()
+    if (error) {
+      console.error('[registroRepository.findById]', error)
+      return null
+    }
+    return data
+  },
+
+  async update(id: string, data: RegistroUpdate): Promise<Registro | null> {
+    const supabase = await createServerSupabase()
+    const { data: updated, error } = await supabase
+      .from('registros')
+      .update(data)
+      .eq('id', id)
+      .eq('updated_at', data.updated_at!)
+      .select()
+      .single()
+    if (error) {
+      console.error('[registroRepository.update]', error)
+      throw error
+    }
+    return updated
+  },
+}
+```
+
+## Regras de segurança
+
+- Nunca usar `SUPABASE_SECRET_KEY` no client — usar `createServerSupabase()` com RLS.
+- Sempre logar erros: `console.error('[repo.funcao]', error)`.
+- Implementação `.local.ts` usa Dexie — sem Supabase.

@@ -1,0 +1,64 @@
+---
+description: Regras para schemas Zod e validação de dados
+globs: ["src/validations/**/*.ts"]
+alwaysApply: false
+---
+
+# Regras para Validações Zod
+
+## Estrutura obrigatória
+
+```
+src/validations/
+  [entidade]/
+    [entidade]-schema.ts
+    [entidade]-types.ts
+```
+
+## Padrão de schemas
+
+```typescript
+// [EXEMPLO — substituir pela entidade do projeto]
+import { z } from 'zod'
+
+export const criarRegistroSchema = z.object({
+  titulo: z.string().min(2, 'Título deve ter pelo menos 2 caracteres').max(100),
+  data_real_evento: z
+    .string()
+    .regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Data inválida. Use dd/MM/aaaa')
+    .refine((val) => {
+      const [dia, mes, ano] = val.split('/').map(Number)
+      const date = new Date(ano, mes - 1, dia)
+      return date.getDate() === dia && date.getMonth() === mes - 1
+    }, 'Data inválida'),
+  categoria_id: z.string().uuid('Categoria inválida'),
+  observacao: z.string().max(500).optional(),
+})
+
+export const atualizarRegistroSchema = criarRegistroSchema
+  .partial()
+  .extend({
+    updated_at: z.string().datetime('Timestamp de controle obrigatório'),
+  })
+
+export type CriarRegistroInput = z.infer<typeof criarRegistroSchema>
+export type AtualizarRegistroInput = z.infer<typeof atualizarRegistroSchema>
+```
+
+## Mensagens de erro
+
+- Sempre em PT-BR e amigáveis para o usuário final.
+- Específicas: "Data inválida. Use dd/MM/aaaa" (não "Invalid date").
+- Nunca expor termos técnicos ao usuário.
+
+## Validação dupla obrigatória
+
+- **Client:** hook form com `zodResolver(schema)` — UX imediata.
+- **Server:** action com `schema.safeParse(rawData)` — segurança.
+- Os dois sempre. Nunca só um.
+
+## Data e Hora
+
+- Schemas de UI aceitam `dd/MM/yyyy`.
+- Conversão para ISO/UTC acontece no service, não no schema.
+- Consultar `docs/DATE_TIME.md`.

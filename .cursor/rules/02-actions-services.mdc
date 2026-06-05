@@ -1,0 +1,59 @@
+---
+description: Regras para Server Actions e Services
+globs: ["src/actions/**/*.ts", "src/services/**/*.ts"]
+alwaysApply: false
+---
+
+# Regras para Server Actions e Services
+
+## Server Actions (`src/actions/`)
+
+- Todo arquivo de action começa com `'use server'`.
+- Toda action retorna `ActionResponse<T>` (nunca lança exceção para o client).
+- Toda action valida a entrada com Zod ANTES de qualquer operação.
+- Toda action verifica autenticação via `getAuthenticatedUser()`.
+- Toda action usa try/catch com `console.error('[nomeAction]', error)`.
+
+### Template obrigatório
+
+```typescript
+// [EXEMPLO — substituir pela entidade do projeto]
+'use server'
+
+import { minhaSchema } from '@/validations/minha/minha-schema'
+import { getAuthenticatedUser } from '@/lib/auth/get-user'
+import { meuService } from '@/services/meu-service'
+import type { ActionResponse } from '@/lib/types/action-response'
+import { AppError } from '@/lib/errors/app-error'
+
+export async function minhaAction(rawData: unknown): Promise<ActionResponse> {
+  try {
+    const parsed = minhaSchema.safeParse(rawData)
+    if (!parsed.success) {
+      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+    }
+
+    const user = await getAuthenticatedUser()
+    const result = await meuService.executar({ ...parsed.data, userId: user.id })
+
+    return { success: true, data: result, message: 'Operação realizada com sucesso!' }
+  } catch (error) {
+    if (error instanceof AppError) return { success: false, message: error.message }
+    console.error('[minhaAction]', error)
+    return { success: false, message: 'Erro interno ao processar a solicitação.' }
+  }
+}
+```
+
+## Services (`src/services/`)
+
+- Services contêm TODA a lógica de negócio e cálculos.
+- Services usam repositories via factory (`getXxxRepository()`) — nunca Supabase diretamente.
+- Services lançam `AppError` para erros esperados de negócio.
+- Services convertem datas UTC ↔ Brasília via `date-time.ts` — nunca no componente.
+- Toda função de service tem try/catch com log adequado.
+
+## DATA_SOURCE
+
+- Verificar `getDataSource()` quando comportamento difere entre local e supabase.
+- Nunca importar repository concreto — sempre via factory (`docs/DEV_MODE.md`).

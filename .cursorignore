@@ -1,0 +1,6 @@
+# .cursorignore
+# Ignorar uma pasta inteira de notas pessoais
+#minhas_notas/
+
+# Ignorar um arquivo específico
+instrucoes_pessoais.md

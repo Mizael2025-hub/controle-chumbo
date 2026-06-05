@@ -1,0 +1,276 @@
+# PROJECT_MAP.md — Mapa Vivo do Projeto
+
+> Inventário planejado e status da construção. Identidade (nome, offline) em `AGENTS.md`.
+
+---
+
+## Informações do Projeto
+
+- **Versão atual:** 0.11.1
+- **Última atualização deste mapa:** 2026-06-05 (UI/UX — modal-actions, InicioLink, navegação padronizada)
+- **DATA_SOURCE atual:** local
+- **Stack:** Next.js 16 + Dexie (local) → Supabase + Tailwind v4 + Design System iOS
+
+---
+
+## Status Geral
+
+| Módulo | Status | Observação |
+|--------|--------|------------|
+| Documentação Fase A | ✅ Concluído | `docs/FASE_A_CHECKLIST.md` |
+| Scaffold Next.js | ✅ Concluído | Next 16, deps, tokens iOS, PWA |
+| Infra (factory, auth, errors, date-time) | ✅ Concluído | Mock auth, ActionResponse, Supabase stubs |
+| Offline/PWA | ✅ Concluído | Dexie PT-BR, outbox, LoginGate, HeaderSyncStatus |
+| Autenticação | 🔄 Parcial | Mock local; login real na Fase D |
+| Cadastros base | ✅ Concluído | 7 entidades; `/configuracoes/cadastros` |
+| Estoque (grade) | ✅ Concluído | Liga → Lotes → grade; saldos derivados; leitura operador+admin |
+| Operações monte | ✅ Concluído | reserva, baixa, mover, devolver, DnD (admin) |
+| Entrada (lotes) | ✅ Concluído | `/entrada` 2 passos, grade 10×5, soma live (sem NF na UI) |
+| Saída / liberação | ✅ Unificado | Ações no `/estoque` (admin); `/saida` redireciona |
+| Contagem física (auditoria) | ✅ Concluído | `/estoque/contagem` rascunho Dexie v4 |
+| Consumo | ✅ Concluído | `/consumo` formulário + alocação automática |
+| Relatórios | ✅ Concluído | `/relatorios` 4 abas, filtros cascata URL+store, resumo kg/barras, drill-down, CSV admin |
+| Configurações / Admin | ✅ Parcial | cadastros + reset operacional + limpar dispositivo |
+| Supabase produção | ⬜ Não iniciado | Fase D |
+
+**Legenda:** ✅ Concluído | 🔄 Em andamento | ⚠️ Com pendências | ⬜ Não iniciado
+
+---
+
+## Rotas Planejadas
+
+| Rota | Status | Observação |
+|------|--------|------------|
+| `/` | ✅ | Infra + mock user + links estoque/entrada/cadastros |
+| `/entrada` | ✅ | 2 passos: data/liga/lote → grade 10×5 + soma live (admin) |
+| `/saida` | ✅ | Redirect → `/estoque` |
+| `/estoque/contagem` | ✅ | Auditoria física; rascunho `contagem_estoque_linha` |
+| `/consumo` | ✅ | Formulário consumo setor (operador + admin) |
+| `/api/sync` | ✅ | Stub — despacho por action nas tarefas de domínio |
+| `/login` | ⬜ | LoginGate já no layout raiz |
+| `/configuracoes/cadastros` | ✅ | Hub + 7 sub-rotas CRUD |
+| `/configuracoes/cadastros/ligas` | ✅ | Cor de liga (chave_cor) |
+| `/configuracoes/cadastros/setores` | ✅ | slug auto (nome), tipo producao/saida_direta |
+| `/configuracoes/cadastros/destinos` | ✅ | Seed VRLA, Óxido, Venda, Teleiras, Exportação |
+| `/configuracoes/cadastros/maquinas` | ✅ | FK setor_id |
+| `/configuracoes/cadastros/operadores` | ✅ | |
+| `/configuracoes/cadastros/turnos` | ✅ | |
+| `/configuracoes/cadastros/modelos` | ✅ | Grade: nome, polaridade, placas/grade, ordem; Dexie v2 |
+| `/estoque` | ✅ | Grade + seleção admin + barra Ações (dropdown) + saldos flex-row |
+| `/relatorios` | ✅ | 4 abas, filtros período+cascata URL+store, card resumo, CSV admin |
+| `/estoque/historico` | ✅ | Redirect → `/relatorios?aba=saidas` |
+
+---
+
+## Offline / Dexie
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/lib/offline/db.ts` | Dexie `controle-chumbo-offline` **v4** + `contagem_estoque_linha` |
+| `src/lib/offline/reset-dados-operacionais.ts` | TRUNCATE operacional (preserva cadastros) |
+| `src/lib/offline/outbox.ts` | Fila FIFO com UUID idempotency |
+| `src/lib/offline/outbox-executor.ts` | Sync → `/api/sync` (só se `NEXT_PUBLIC_DATA_SOURCE=supabase`) |
+| `src/lib/offline/clear-local-data.ts` | Limpeza total IndexedDB + cache + SW |
+| `src/lib/offline/conflict-resolver.ts` | LWW por `updated_at` |
+
+### Tabelas Dexie (PT-BR)
+
+`usuarios`, `ligas`, `lotes`, `setores`, `maquinas`, `montes`, `destinos_saida`, `transacoes_saida`, `eventos_monte`, `operadores`, `turnos`, `modelos_produto`, `apontamentos_consumo`, `alocacoes_consumo`, `contagem_estoque_linha`, `outbox`
+
+### Componentes offline
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `login-gate.tsx` | Bloqueia abertura sem internet |
+| `header-sync-status.tsx` | Online / Sincronizando / Offline / Erro |
+| `offline-sync-provider.tsx` | Sync a cada 30s + eventos rede |
+| `app-providers.tsx` | LoginGate + QueryProvider + Sync + AppHeader |
+
+### Layout / navegação
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `app-header.tsx` | Cabeçalho global sticky |
+| `inicio-link.tsx` | Link "Início" padronizado (`href="/"`, `data-testid="link-inicio"`) |
+| `globals.css` `.modal-actions` | Padding inferior nos rodapés de ação dos modais |
+
+---
+
+## Estoque (visualização)
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Types | `lib/types/status-monte.ts` | Status DISPONIVEL, RESERVADO, PARCIAL, CONSUMIDO |
+| Saldos | `lib/estoque/calcular-saldos.ts` | No estoque (almox) / reservado no estoque / no setor |
+| Repositories | `repositories/estoque-repository*.ts` | Dados brutos ligas, lotes, montes |
+| Factory | `lib/data-source/estoque-repositories.ts` | getEstoqueRepository + client local |
+| Service | `services/estoque-service.ts` | VisaoEstoque + setores_por_id |
+| Actions | `actions/estoque-actions.ts` | listarVisaoEstoqueAction |
+| Client | `lib/estoque/estoque-client.ts` | Dexie no browser (local) |
+| UI | `components/features/estoque/*`, `grade-scroll-container`, `app/estoque/page.tsx` | Tabs, seleção, `SaidaAcoesPainel`, estados visuais célula; cabeçalho com `InicioLink` (sem atalhos Contagem/Liberações) |
+| UI | `components/ui/contextual-action-bar.tsx`, `acoes-dropdown-menu.tsx` | Limpar seleção + menu Ações para cima |
+
+**Permissão:** `operador` leitura + sheet; `admin` seleção + 5 operações de saída/reserva na grade.
+
+---
+
+## Operações monte
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Types | `lib/types/tipo-evento-monte.ts` | RESERVA, CANCELAMENTO_RESERVA, MOVIDO_PARA_SETOR, DEVOLVIDO_ALMOXARIFADO |
+| Baixa | `lib/monte/calcular-baixa.ts` | Peso proporcional por barras |
+| Validations | `validations/monte/monte-schema.ts` | Zod para 6 operações |
+| Repositories | `repositories/monte-repository*.ts` | montes, eventos_monte, transacoes_saida |
+| Service | `services/monte-service.ts` | Regras BUSINESS_RULES §3.3–3.5 |
+| Actions | `actions/monte-actions.ts` | Server actions |
+| Client | `lib/monte/monte-client.ts` | Dexie no browser (local) |
+| UI | `monte-detalhe-sheet`, `monte-acoes-modais`, `estoque-grade` DnD | Modais + arrastar células |
+
+---
+
+## Cadastros base
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Types | `lib/types/chave-cor-liga.ts`, `setor-tipo.ts` | Enums de domínio |
+| Validations | `validations/cadastros/cadastro-schema.ts` | Zod PT-BR |
+| Repositories | `repositories/cadastro-repository*.ts` | local Dexie + stub Supabase |
+| Factory | `lib/data-source/cadastro-repositories.ts` | getXxxRepository + client local |
+| Service | `services/cadastro-service.ts` | Regras + admin + seed destinos |
+| Actions | `actions/cadastro-actions.ts` | Server actions (supabase futuro) |
+| Client | `lib/cadastros/cadastro-client.ts` | Dexie no browser (DATA_SOURCE=local) |
+| UI | `components/features/cadastros/*` | Hub + painéis CRUD iOS |
+| Modelos | `modelos-panel.tsx` | Grade: polaridade, placas_por_grade, unicidade nome+polaridade |
+| Types | `lib/types/polaridade-modelo.ts`, `tipo-produto-modelo.ts` | Enums de domínio |
+| Seed | `lib/cadastros/seed-destinos.ts` | VRLA, Óxido, Venda, Teleiras, Exportação |
+
+**Permissão:** somente `admin` (PCP). Operador vê tela de acesso negado.
+
+---
+
+## Entrada (lotes + grade)
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Validação grade | `lib/entrada/validar-grade-entrada.ts` | Soma pilhas, duplicatas, conferência vs iniciais |
+| Validations | `validations/entrada/entrada-schema.ts` | Zod criar lote + células |
+| Repositories | `repositories/entrada-repository*.ts` | Transação Dexie lote + montes |
+| Factory | `lib/data-source/entrada-repositories.ts` | getEntradaRepository + client local |
+| Service | `services/entrada-service.ts` | Admin, UNIQUE número/liga, data não futura |
+| Actions | `actions/entrada-actions.ts` | criarEntradaAction |
+| Client | `lib/entrada/entrada-client.ts` | Dexie no browser (local) |
+| Constantes grade | `lib/entrada/grade-entrada-constants.ts` | 10 colunas × 5 linhas fixo na entrada |
+| UI | `components/features/entrada/*`, `app/entrada/page.tsx` | 2 passos, painel soma da grade em tempo real; `InicioLink` no cabeçalho |
+
+**Permissão:** somente `admin` (PCP).
+
+---
+
+## Saída (liberação agrupada + estorno)
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Status pós-estorno | `lib/monte/calcular-status-pos-estorno.ts` | Recalcula DISPONIVEL/PARCIAL/RESERVADO |
+| Validations | `validations/saida/saida-schema.ts` | Zod baixaAgrupada (+ setor_id, observacao) + estornar |
+| Elegibilidade | `lib/saida/monte-elegivel-operacao.ts` | Regras por tipo de operação |
+| Repositories | `repositories/saida-repository*.ts` | Transação Dexie atômica; listagem transacoes_saida |
+| Factory | `lib/data-source/saida-repositories.ts` | getSaidaRepository + client local |
+| Service | `services/saida-service.ts` | baixaAgrupada, estornar, listar liberações |
+| Actions | `actions/saida-actions.ts` | Server actions |
+| Client | `lib/saida/saida-client.ts` | Dexie no browser (local) |
+| UI | `saida-nova-liberacao`, `saida-grade-selecao`, `saida-acoes-painel`, `monte-historico-modal` | ContextualActionBar + ícones + histórico monte |
+
+---
+
+## Consumo (apontamento diário)
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Alocação | `lib/consumo/alocar-barras.ts` | Distribui barras entre montes do setor |
+| Validations | `validations/consumo/consumo-schema.ts` | Zod criar + listar lotes |
+| Repositories | `repositories/consumo-repository*.ts` | Dexie apontamento + alocações |
+| Factory | `lib/data-source/consumo-repositories.ts` | getConsumoRepository |
+| Service | `services/consumo-service.ts` | Regras §3.6, saldo setor |
+| Actions | `actions/consumo-actions.ts` | Server actions |
+| Client | `lib/consumo/consumo-client.ts` | Dexie browser |
+| UI | `components/features/consumo/consumo-form.tsx`, `app/consumo/page.tsx` | Formulário mobile-first; `InicioLink` no cabeçalho |
+
+**Permissão:** `operador` e `admin`.
+
+> Saída/liberação: somente `admin` — ver seção Saída abaixo.
+
+---
+
+## Relatórios
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Validations | `validations/relatorio/relatorio-schema.ts` | Zod aba + período (default 7 dias) + filtros multiselect URL |
+| Store | `stores/relatorio-filtros-store.ts` | Zustand filtros (período + cascata) |
+| Hook | `hooks/use-relatorio-filtros.ts` | Sync URL ↔ store |
+| Lib | `lib/relatorio/filtros-relatorio.ts` | Cascata, totais, filtrar resultado |
+| Lib | `lib/saida/atualizar-grupo-liberacao-view.ts` | Metadados grupo saída (obs, liga, setor) |
+| Repositories | `repositories/relatorio-repository*.ts` | Consultas por período Dexie |
+| Factory | `lib/data-source/relatorio-repositories.ts` | getRelatorioRepository |
+| Service | `services/relatorio-service.ts` | 4 abas, detalhes, CSV UTF-8 `;` com filtros |
+| Actions | `actions/relatorio-actions.ts` | Server actions |
+| Client | `lib/relatorio/relatorio-client.ts` | Dexie no browser (local) |
+| UI | `components/features/relatorios/*`, `app/relatorios/page.tsx` | Abas, filtros sheet + modais categoria, resumo, drill-down; `InicioLink` no cabeçalho |
+
+**Permissão:** `operador` e `admin` leem; export CSV e estorno na aba Saídas somente `admin`.
+
+**Filtros cascata (por aba, multiselect):** entradas (liga); saídas (destino, liga, setor); consumo (setor, máquina, operador, liga, turno). Reservas: só período no menu Filtros.
+
+**Período padrão:** últimos 7 dias (alterável apenas no menu Filtros).
+
+**UI extra:** card resumo peso/barras (entradas, saídas, consumo); observação em vendas no card de saída.
+
+---
+
+## Server Actions
+
+| Arquivo | Status |
+|---------|--------|
+| `auth-actions.ts` | ✅ trocar mock user |
+| `local-data-actions.ts` | ✅ autorização admin limpeza |
+| `cadastro-actions.ts` | ✅ CRUD 7 entidades cadastro |
+| `estoque-actions.ts` | ✅ listar visão estoque |
+| `monte-actions.ts` | ✅ reserva, baixa, mover (split), devolver, trocar posição, histórico |
+| `entrada-actions.ts` | ✅ criar lote + grade inicial |
+| `saida-actions.ts` | ✅ baixa agrupada, listar liberações, estornar |
+| `consumo-actions.ts` | ✅ criar apontamento, listar lotes setor |
+| `relatorio-actions.ts` | ✅ consultar, exportar CSV, detalhes entrada/consumo |
+
+---
+
+## Variáveis de Ambiente
+
+```bash
+DATA_SOURCE=local
+NEXT_PUBLIC_DATA_SOURCE=local   # espelho client — deve ser igual
+NEXT_PUBLIC_APP_TIMEZONE=America/Sao_Paulo
+```
+
+> Sync/outbox no browser só ativa quando ambos = `supabase`.
+
+---
+
+## Decisões Técnicas
+
+| Data | Decisão | Motivo |
+|------|---------|--------|
+| 2026-06-02 | `NEXT_PUBLIC_DATA_SOURCE` espelha `DATA_SOURCE` | Client precisa saber se sync ativo |
+| 2026-06-02 | Outbox/sync desligado em `local` | DEV_MODE.md |
+| 2026-06-02 | Zustand `sync-status-store` | HeaderSyncStatus + provider |
+| 2026-06-02 | LoginGate no layout raiz | Internet obrigatória na abertura |
+| 2026-06-02 | `cadastroClient` no browser | Dexie/IndexedDB só no client em modo local |
+| 2026-06-02 | Seed destinos na primeira listagem | ENTREVISTA_PROJETO.md §3 |
+| 2026-06-05 | `InicioLink` + `.modal-actions` | Navegação padronizada; respiro nos rodapés de modais |
+| 2026-06-05 | Atalhos Contagem/Liberações removidos do `/estoque` | Acesso via home (`/`) |
+
+---
+
+## Backlog Fase B
+
+✅ **Concluída** — próximo marco: **Supabase Fase D**
