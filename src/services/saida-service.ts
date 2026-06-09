@@ -1,13 +1,12 @@
-import { monteEstaConsumido } from '@/lib/estoque/calcular-saldos'
-import { getDestinoSaidaRepository, getSetorRepository } from '@/lib/data-source/cadastro-repositories'
-import { getEstoqueRepository } from '@/lib/data-source/estoque-repositories'
-import { getSaidaRepository } from '@/lib/data-source/saida-repositories'
+﻿import { monteEstaConsumido } from '@/lib/estoque/calcular-saldos'
 import { AppError } from '@/lib/errors/app-error'
 import {
   mesclarMetadadosGrupo,
   metadadosIniciaisGrupo,
 } from '@/lib/saida/atualizar-grupo-liberacao-view'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
+import type { DestinoSaidaRepository, SetorRepository } from '@/repositories/cadastro-repository'
+import type { EstoqueRepository } from '@/repositories/estoque-repository'
 import type { SaidaRepository } from '@/repositories/saida-repository'
 import { seedDestinosSaidaSeVazio } from '@/services/cadastro-service'
 import type {
@@ -18,6 +17,17 @@ import type {
 type ContextoSaida = {
   userId: string
   role: UsuarioRole
+}
+
+export type SaidaListagemDeps = {
+  destinoRepo: DestinoSaidaRepository
+  estoqueRepo: EstoqueRepository
+  setorRepo: SetorRepository
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
 }
 
 export type MonteElegivelSaida = {
@@ -69,11 +79,11 @@ function chaveGrupo(grupoId: string | null | undefined, transacaoId: string): st
 
 export async function listarMontesElegiveisSaida(
   ctx: ContextoSaida,
-  estoqueRepo = getEstoqueRepository()
+  estoqueRepo?: EstoqueRepository
 ): Promise<MonteElegivelSaida[]> {
   assertAdmin(ctx.role)
 
-  const { ligas, lotes, montes } = await estoqueRepo.fetchDadosBrutos()
+  const { ligas, lotes, montes } = await requireRepo(estoqueRepo).fetchDadosBrutos()
 
   const ligasPorId = new Map(ligas.map((l) => [l.id, l.nome]))
   const lotesPorId = new Map(lotes.map((l) => [l.id, l]))
@@ -106,15 +116,19 @@ export async function listarMontesElegiveisSaida(
 
 export async function listarLiberacoes(
   ctx: ContextoSaida,
-  repo: SaidaRepository = getSaidaRepository()
+  repo?: SaidaRepository,
+  deps?: SaidaListagemDeps
 ): Promise<LiberacaoGrupoView[]> {
   assertAdmin(ctx.role)
 
+  const saidaRepo = requireRepo(repo)
+  const { destinoRepo, estoqueRepo, setorRepo } = requireRepo(deps)
+
   const [transacoes, destinos, dadosEstoque, setores] = await Promise.all([
-    repo.listarTransacoes(),
-    getDestinoSaidaRepository().findAll(true),
-    getEstoqueRepository().fetchDadosBrutos(),
-    getSetorRepository().findAll(true),
+    saidaRepo.listarTransacoes(),
+    destinoRepo.findAll(true),
+    estoqueRepo.fetchDadosBrutos(),
+    setorRepo.findAll(true),
   ])
 
   const { montes, lotes, ligas } = dadosEstoque
@@ -187,12 +201,13 @@ export async function listarLiberacoes(
 export async function baixaAgrupada(
   ctx: ContextoSaida,
   input: BaixaAgrupadaInput,
-  repo: SaidaRepository = getSaidaRepository()
+  repo?: SaidaRepository,
+  destinoRepo?: DestinoSaidaRepository
 ) {
   try {
     assertAdmin(ctx.role)
-    await seedDestinosSaidaSeVazio(ctx.userId)
-    return repo.executarBaixaAgrupada({
+    await seedDestinosSaidaSeVazio(ctx.userId, destinoRepo)
+    return requireRepo(repo).executarBaixaAgrupada({
       destino_saida_id: input.destino_saida_id,
       setor_id: input.setor_id ?? null,
       observacao: input.observacao,
@@ -208,18 +223,19 @@ export async function baixaAgrupada(
 export async function estornarLiberacao(
   ctx: ContextoSaida,
   input: EstornarLiberacaoInput,
-  repo: SaidaRepository = getSaidaRepository()
+  repo?: SaidaRepository
 ) {
   try {
     assertAdmin(ctx.role)
+    const saidaRepo = requireRepo(repo)
 
     let transacaoIds: string[] = []
 
     if (input.grupo_liberacao_id) {
-      const grupo = await repo.findTransacoesByGrupo(input.grupo_liberacao_id)
+      const grupo = await saidaRepo.findTransacoesByGrupo(input.grupo_liberacao_id)
       transacaoIds = grupo.filter((t) => !t.estornada).map((t) => t.id)
     } else if (input.transacao_id) {
-      const transacao = await repo.findTransacaoById(input.transacao_id)
+      const transacao = await saidaRepo.findTransacaoById(input.transacao_id)
       if (!transacao) throw AppError.notFound('Transação de saída')
       if (transacao.estornada) {
         throw AppError.validation('Esta liberação já foi estornada.')
@@ -231,7 +247,7 @@ export async function estornarLiberacao(
       throw AppError.validation('Nenhuma transação ativa para estornar.')
     }
 
-    await repo.estornarTransacoes({
+    await saidaRepo.estornarTransacoes({
       transacao_ids: transacaoIds,
       estornada_por: ctx.userId,
     })

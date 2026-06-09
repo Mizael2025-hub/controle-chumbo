@@ -106,16 +106,21 @@ export function EntradaGradeEditor({
         )}
       </GradeScrollContainer>
 
-      {celulaEditando && (
-        <EntradaCelulaModal
-          posicaoX={celulaEditando.x}
-          posicaoY={celulaEditando.y}
-          valorInicial={celulas.get(`${celulaEditando.x}-${celulaEditando.y}`) ?? null}
-          onSalvar={atualizarCelula}
-          onLimpar={() => limparCelula(celulaEditando.x, celulaEditando.y)}
-          onFechar={() => setCelulaEditando(null)}
-        />
-      )}
+      <EntradaCelulaModal
+        aberto={celulaEditando !== null}
+        posicaoX={celulaEditando?.x ?? 0}
+        posicaoY={celulaEditando?.y ?? 0}
+        valorInicial={
+          celulaEditando
+            ? (celulas.get(`${celulaEditando.x}-${celulaEditando.y}`) ?? null)
+            : null
+        }
+        onSalvar={atualizarCelula}
+        onLimpar={() => {
+          if (celulaEditando) limparCelula(celulaEditando.x, celulaEditando.y)
+        }}
+        onFechar={() => setCelulaEditando(null)}
+      />
     </>
   )
 }

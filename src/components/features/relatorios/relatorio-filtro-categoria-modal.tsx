@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check, X } from 'lucide-react'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { ROTULOS_DIMENSAO, type DimensaoFiltroRelatorio } from '@/lib/relatorio/filtros-relatorio'
 
 type Props = {
@@ -32,14 +33,14 @@ export function RelatorioFiltroCategoriaModal({
   )
 
   return (
-    <div
-      className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      data-testid={`relatorio-filtro-categoria-${dimensao}`}
-    >
+    <ModalOverlay aberto variante="sheet" nivel="nested">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onFechar} />
-      <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-md rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl max-h-[85vh] overflow-y-auto">
+      <div
+        className="modal-card mobile-sheet-card"
+        role="dialog"
+        aria-modal="true"
+        data-testid={`relatorio-filtro-categoria-${dimensao}`}
+      >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-semibold">{ROTULOS_DIMENSAO[dimensao]}</h3>
@@ -86,7 +87,7 @@ export function RelatorioFiltroCategoriaModal({
           <button
             type="button"
             onClick={() => setRascunho([])}
-            className="apple-pressable flex-1 min-h-[44px] rounded-ios-btn border border-zinc-200 dark:border-zinc-700 font-medium text-sm"
+            className="btn-modal-secondary text-sm"
             data-testid={`btn-limpar-selecao-${dimensao}`}
           >
             Limpar seleção
@@ -104,6 +105,6 @@ export function RelatorioFiltroCategoriaModal({
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

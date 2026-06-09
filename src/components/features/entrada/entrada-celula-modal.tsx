@@ -2,6 +2,17 @@
 
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
+import {
+  modalBtnCancelClass,
+  modalBtnPrimaryClass,
+  modalCardCompactClass,
+  modalInputClass,
+  modalLabelClass,
+  modalSubtitleClass,
+  modalTitleClass,
+} from '@/components/ui/modal-ui-classes'
+import { agentLog } from '@/lib/debug/agent-log'
 import type { CelulaEntradaInput } from '@/validations/entrada/entrada-schema'
 
 type FormValues = {
@@ -10,6 +21,7 @@ type FormValues = {
 }
 
 type Props = {
+  aberto: boolean
   posicaoX: number
   posicaoY: number
   valorInicial: CelulaEntradaInput | null
@@ -19,6 +31,7 @@ type Props = {
 }
 
 export function EntradaCelulaModal({
+  aberto,
   posicaoX,
   posicaoY,
   valorInicial,
@@ -33,12 +46,51 @@ export function EntradaCelulaModal({
     },
   })
 
+  // Reseta o formulário sempre que o modal abre (aberto=true) ou o valorInicial muda.
+  // Impede que valores de uma célula anterior persistam ao abrir uma célula vazia.
   useEffect(() => {
+    if (!aberto) return
     form.reset({
       peso_atual_kg: valorInicial ? String(valorInicial.peso_atual_kg) : '',
       barras_atuais: valorInicial ? String(valorInicial.barras_atuais) : '',
     })
-  }, [valorInicial, form])
+    // #region agent log
+    requestAnimationFrame(() => {
+      const card = document.querySelector('[data-testid="entrada-celula-modal-card"]')
+      const btn = document.querySelector('[data-testid="btn-cancelar-celula"]')
+      const input = document.querySelector('[data-testid="input-celula-kg"]')
+      const titulo = document.querySelector('[data-testid="entrada-celula-titulo"]')
+      const cardStyles = card ? getComputedStyle(card) : null
+      const tituloStyles = titulo ? getComputedStyle(titulo) : null
+      const btnStyles = btn ? getComputedStyle(btn) : null
+      const inputStyles = input ? getComputedStyle(input) : null
+      agentLog({
+        location: 'entrada-celula-modal.tsx:aberto',
+        message: 'Modal célula aberto — estilos computados',
+        hypothesisId: 'H1-H2',
+        runId: 'post-fix-v5',
+        data: {
+          posicaoX,
+          posicaoY,
+          temValorInicial: Boolean(valorInicial),
+          prefersDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+          cardClass: card?.className ?? null,
+          cardBg: cardStyles?.backgroundColor ?? null,
+          cardColor: cardStyles?.color ?? null,
+          tituloColor: tituloStyles?.color ?? null,
+          tituloVisivel: tituloStyles
+            ? tituloStyles.color !== cardStyles?.color
+            : null,
+          btnBg: btnStyles?.backgroundColor ?? null,
+          btnColor: btnStyles?.color ?? null,
+          btnAppearance: btnStyles?.appearance ?? null,
+          inputBg: inputStyles?.backgroundColor ?? null,
+          inputBorder: inputStyles?.borderColor ?? null,
+        },
+      })
+    })
+    // #endregion
+  }, [aberto, valorInicial, form, posicaoX, posicaoY])
 
   const handleSubmit = form.handleSubmit((values) => {
     const kg = Number(values.peso_atual_kg.replace(',', '.'))
@@ -62,50 +114,60 @@ export function EntradaCelulaModal({
       peso_atual_kg: kg,
       barras_atuais: barras,
     })
+    form.reset({ peso_atual_kg: '', barras_atuais: '' })
     onFechar()
   })
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center">
-      <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe">
-        <h2 className="text-xl font-semibold mb-1">
+    <ModalOverlay aberto={aberto}>
+      <div className={modalCardCompactClass} data-testid="entrada-celula-modal-card">
+        <h2 className={modalTitleClass} data-testid="entrada-celula-titulo">
           Célula {posicaoX + 1},{posicaoY + 1}
         </h2>
-        <p className="text-sm text-zinc-500 mb-4">Informe peso (kg) e barras desta pilha.</p>
+        <p className={modalSubtitleClass}>Informe peso (kg) e barras desta pilha.</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Peso (kg)</label>
-            <input
-              {...form.register('peso_atual_kg')}
-              inputMode="decimal"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px]"
-              data-testid="input-celula-kg"
-            />
-            {form.formState.errors.peso_atual_kg && (
-              <span className="text-[12px] text-apple-red">
-                {form.formState.errors.peso_atual_kg.message}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Barras</label>
-            <input
-              {...form.register('barras_atuais')}
-              inputMode="numeric"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px]"
-              data-testid="input-celula-barras"
-            />
-            {form.formState.errors.barras_atuais && (
-              <span className="text-[12px] text-apple-red">
-                {form.formState.errors.barras_atuais.message}
-              </span>
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className={modalLabelClass} htmlFor="input-celula-kg">
+                Peso (kg)
+              </label>
+              <input
+                id="input-celula-kg"
+                {...form.register('peso_atual_kg')}
+                inputMode="decimal"
+                className={modalInputClass}
+                data-testid="input-celula-kg"
+              />
+              {form.formState.errors.peso_atual_kg && (
+                <span className="text-[12px] text-apple-red">
+                  {form.formState.errors.peso_atual_kg.message}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={modalLabelClass} htmlFor="input-celula-barras">
+                Barras
+              </label>
+              <input
+                id="input-celula-barras"
+                {...form.register('barras_atuais')}
+                inputMode="numeric"
+                className={modalInputClass}
+                data-testid="input-celula-barras"
+              />
+              {form.formState.errors.barras_atuais && (
+                <span className="text-[12px] text-apple-red">
+                  {form.formState.errors.barras_atuais.message}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 modal-actions">
             <button
               type="button"
               onClick={onFechar}
-              className="flex-1 bg-zinc-100 font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+              className={modalBtnCancelClass}
+              data-testid="btn-cancelar-celula"
             >
               Cancelar
             </button>
@@ -116,14 +178,14 @@ export function EntradaCelulaModal({
                   onLimpar()
                   onFechar()
                 }}
-                className="flex-1 bg-zinc-200 font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+                className={modalBtnCancelClass}
               >
                 Limpar
               </button>
             )}
             <button
               type="submit"
-              className="flex-1 bg-apple-blue text-white font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+              className={modalBtnPrimaryClass}
               data-testid="btn-salvar-celula"
             >
               Salvar
@@ -131,6 +193,6 @@ export function EntradaCelulaModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

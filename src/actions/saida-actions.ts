@@ -1,5 +1,12 @@
 'use server'
 
+import {
+  getDestinoSaidaRepository,
+  getEstoqueRepository,
+  getSaidaRepository,
+  getSetorRepository,
+} from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -34,7 +41,7 @@ export async function listarMontesElegiveisSaidaAction(): Promise<
 > {
   try {
     const ctx = await getContexto()
-    const data = await saidaService.listarMontesElegiveisSaida(ctx)
+    const data = await saidaService.listarMontesElegiveisSaida(ctx, await getEstoqueRepository())
     return { success: true, data }
   } catch (error) {
     return handleError(error)
@@ -44,7 +51,11 @@ export async function listarMontesElegiveisSaidaAction(): Promise<
 export async function listarLiberacoesAction(): Promise<ActionResponse<LiberacaoGrupoView[]>> {
   try {
     const ctx = await getContexto()
-    const data = await saidaService.listarLiberacoes(ctx)
+    const data = await saidaService.listarLiberacoes(ctx, await getSaidaRepository(), {
+      destinoRepo: await getDestinoSaidaRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+      setorRepo: await getSetorRepository(),
+    })
     return { success: true, data }
   } catch (error) {
     return handleError(error)
@@ -60,7 +71,7 @@ export async function baixaAgrupadaAction(
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await saidaService.baixaAgrupada(ctx, parsed.data)
+    const data = await saidaService.baixaAgrupada(ctx, parsed.data, await getSaidaRepository(), await getDestinoSaidaRepository())
     return { success: true, data, message: 'Liberação registrada com sucesso!' }
   } catch (error) {
     return handleError(error)
@@ -74,7 +85,7 @@ export async function estornarLiberacaoAction(rawData: unknown): Promise<ActionR
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    await saidaService.estornarLiberacao(ctx, parsed.data)
+    await saidaService.estornarLiberacao(ctx, parsed.data, await getSaidaRepository())
     return { success: true, message: 'Liberação estornada com sucesso!' }
   } catch (error) {
     return handleError(error)

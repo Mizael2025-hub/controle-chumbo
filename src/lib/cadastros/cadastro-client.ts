@@ -1,6 +1,37 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import {
+  atualizarDestinoAction,
+  atualizarLigaAction,
+  atualizarMaquinaAction,
+  atualizarModeloProdutoAction,
+  atualizarOperadorAction,
+  atualizarSetorAction,
+  atualizarTurnoAction,
+  criarDestinoAction,
+  criarLigaAction,
+  criarMaquinaAction,
+  criarModeloProdutoAction,
+  criarOperadorAction,
+  criarSetorAction,
+  criarTurnoAction,
+  excluirDestinoAction,
+  excluirLigaAction,
+  excluirMaquinaAction,
+  excluirModeloProdutoAction,
+  excluirOperadorAction,
+  excluirSetorAction,
+  excluirTurnoAction,
+  listarDestinosAction,
+  listarLigasAction,
+  listarMaquinasAction,
+  listarModelosProdutoAction,
+  listarOperadoresAction,
+  listarSetoresAction,
+  listarTurnosAction,
+} from '@/actions/cadastro-actions'
+import { dispatchLocalOrAction, dispatchLocalOrActionVoid } from '@/lib/data-source/client-dispatch'
+import { ensureDbOpen } from '@/lib/offline/db'
 import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
@@ -26,16 +57,12 @@ function wrapError(error: unknown): ActionResponse {
   return { success: false, message: 'Erro interno ao processar a solicitação.' }
 }
 
-/** Executa operação de cadastro no Dexie (client) quando DATA_SOURCE=local. */
-export async function executarCadastroLocal<T>(
+async function executarCadastroLocal<T>(
   operacao: () => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
-
   try {
+    await ensureDbOpen()
     const data = await operacao()
     return wrapSuccess(data, message)
   } catch (error) {
@@ -44,16 +71,12 @@ export async function executarCadastroLocal<T>(
   }
 }
 
-/** Variante para operações sem retorno (ex.: soft delete). */
-export async function executarCadastroLocalVoid(
+async function executarCadastroLocalVoid(
   operacao: () => Promise<void>,
   message: string
 ): Promise<ActionResponse> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
-
   try {
+    await ensureDbOpen()
     await operacao()
     return { success: true, message }
   } catch (error) {
@@ -63,193 +86,319 @@ export async function executarCadastroLocalVoid(
 }
 
 export const cadastroClient = {
-  listarLigas: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarLigas(ctx, cadastroRepositoriesLocal.ligas),
-      ''
+  listarLigas: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarLigas(_ctx, cadastroRepositoriesLocal.ligas),
+          ''
+        ),
+      () => listarLigasAction()
     ),
 
-  criarLiga: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarLiga>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarLiga(ctx, input, cadastroRepositoriesLocal.ligas),
-      'Liga criada com sucesso!'
+  criarLiga: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarLiga>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.criarLiga(_ctx, input, cadastroRepositoriesLocal.ligas),
+          'Liga criada com sucesso!'
+        ),
+      () => criarLigaAction(input)
     ),
 
-  atualizarLiga: (ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarLiga>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarLiga(ctx, input, cadastroRepositoriesLocal.ligas),
-      'Liga atualizada com sucesso!'
+  atualizarLiga: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarLiga>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.atualizarLiga(_ctx, input, cadastroRepositoriesLocal.ligas),
+          'Liga atualizada com sucesso!'
+        ),
+      () => atualizarLigaAction(input)
     ),
 
-  excluirLiga: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirLiga(ctx, id, cadastroRepositoriesLocal.ligas),
-      'Liga desativada com sucesso!'
+  excluirLiga: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirLiga(_ctx, id, cadastroRepositoriesLocal.ligas),
+          'Liga desativada com sucesso!'
+        ),
+      () => excluirLigaAction({ id })
     ),
 
-  listarSetores: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarSetores(ctx, cadastroRepositoriesLocal.setores),
-      ''
+  listarSetores: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarSetores(_ctx, cadastroRepositoriesLocal.setores),
+          ''
+        ),
+      () => listarSetoresAction()
     ),
 
-  criarSetor: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarSetor>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarSetor(ctx, input, cadastroRepositoriesLocal.setores),
-      'Setor criado com sucesso!'
+  criarSetor: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarSetor>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.criarSetor(_ctx, input, cadastroRepositoriesLocal.setores),
+          'Setor criado com sucesso!'
+        ),
+      () => criarSetorAction(input)
     ),
 
-  atualizarSetor: (ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarSetor>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarSetor(ctx, input, cadastroRepositoriesLocal.setores),
-      'Setor atualizado com sucesso!'
+  atualizarSetor: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarSetor>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.atualizarSetor(_ctx, input, cadastroRepositoriesLocal.setores),
+          'Setor atualizado com sucesso!'
+        ),
+      () => atualizarSetorAction(input)
     ),
 
-  excluirSetor: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirSetor(ctx, id, cadastroRepositoriesLocal.setores),
-      'Setor desativado com sucesso!'
+  excluirSetor: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirSetor(_ctx, id, cadastroRepositoriesLocal.setores),
+          'Setor desativado com sucesso!'
+        ),
+      () => excluirSetorAction({ id })
     ),
 
-  listarDestinos: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarDestinos(ctx, cadastroRepositoriesLocal.destinos_saida),
-      ''
+  listarDestinos: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarDestinos(_ctx, cadastroRepositoriesLocal.destinos_saida),
+          ''
+        ),
+      () => listarDestinosAction()
     ),
 
-  criarDestino: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarDestino>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarDestino(ctx, input, cadastroRepositoriesLocal.destinos_saida),
-      'Destino criado com sucesso!'
+  criarDestino: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarDestino>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.criarDestino(_ctx, input, cadastroRepositoriesLocal.destinos_saida),
+          'Destino criado com sucesso!'
+        ),
+      () => criarDestinoAction(input)
     ),
 
   atualizarDestino: (
-    ctx: ContextoClient,
+    _ctx: ContextoClient,
     input: Parameters<typeof cadastroService.atualizarDestino>[1]
   ) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarDestino(ctx, input, cadastroRepositoriesLocal.destinos_saida),
-      'Destino atualizado com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () =>
+            cadastroService.atualizarDestino(_ctx, input, cadastroRepositoriesLocal.destinos_saida),
+          'Destino atualizado com sucesso!'
+        ),
+      () => atualizarDestinoAction(input)
     ),
 
-  excluirDestino: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirDestino(ctx, id, cadastroRepositoriesLocal.destinos_saida),
-      'Destino desativado com sucesso!'
+  excluirDestino: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirDestino(_ctx, id, cadastroRepositoriesLocal.destinos_saida),
+          'Destino desativado com sucesso!'
+        ),
+      () => excluirDestinoAction({ id })
     ),
 
-  listarOperadores: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarOperadores(ctx, cadastroRepositoriesLocal.operadores),
-      ''
+  listarOperadores: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarOperadores(_ctx, cadastroRepositoriesLocal.operadores),
+          ''
+        ),
+      () => listarOperadoresAction()
     ),
 
-  criarOperador: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarOperador>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarOperador(ctx, input, cadastroRepositoriesLocal.operadores),
-      'Operador criado com sucesso!'
+  criarOperador: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarOperador>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.criarOperador(_ctx, input, cadastroRepositoriesLocal.operadores),
+          'Operador criado com sucesso!'
+        ),
+      () => criarOperadorAction(input)
     ),
 
   atualizarOperador: (
-    ctx: ContextoClient,
+    _ctx: ContextoClient,
     input: Parameters<typeof cadastroService.atualizarOperador>[1]
   ) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarOperador(ctx, input, cadastroRepositoriesLocal.operadores),
-      'Operador atualizado com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.atualizarOperador(_ctx, input, cadastroRepositoriesLocal.operadores),
+          'Operador atualizado com sucesso!'
+        ),
+      () => atualizarOperadorAction(input)
     ),
 
-  excluirOperador: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirOperador(ctx, id, cadastroRepositoriesLocal.operadores),
-      'Operador desativado com sucesso!'
+  excluirOperador: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirOperador(_ctx, id, cadastroRepositoriesLocal.operadores),
+          'Operador desativado com sucesso!'
+        ),
+      () => excluirOperadorAction({ id })
     ),
 
-  listarTurnos: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarTurnos(ctx, cadastroRepositoriesLocal.turnos),
-      ''
+  listarTurnos: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarTurnos(_ctx, cadastroRepositoriesLocal.turnos),
+          ''
+        ),
+      () => listarTurnosAction()
     ),
 
-  criarTurno: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarTurno>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarTurno(ctx, input, cadastroRepositoriesLocal.turnos),
-      'Turno criado com sucesso!'
+  criarTurno: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarTurno>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.criarTurno(_ctx, input, cadastroRepositoriesLocal.turnos),
+          'Turno criado com sucesso!'
+        ),
+      () => criarTurnoAction(input)
     ),
 
-  atualizarTurno: (ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarTurno>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarTurno(ctx, input, cadastroRepositoriesLocal.turnos),
-      'Turno atualizado com sucesso!'
+  atualizarTurno: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.atualizarTurno>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.atualizarTurno(_ctx, input, cadastroRepositoriesLocal.turnos),
+          'Turno atualizado com sucesso!'
+        ),
+      () => atualizarTurnoAction(input)
     ),
 
-  excluirTurno: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirTurno(ctx, id, cadastroRepositoriesLocal.turnos),
-      'Turno desativado com sucesso!'
+  excluirTurno: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirTurno(_ctx, id, cadastroRepositoriesLocal.turnos),
+          'Turno desativado com sucesso!'
+        ),
+      () => excluirTurnoAction({ id })
     ),
 
-  listarModelosProduto: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarModelosProduto(ctx, cadastroRepositoriesLocal.modelos_produto),
-      ''
+  listarModelosProduto: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () =>
+            cadastroService.listarModelosProduto(_ctx, cadastroRepositoriesLocal.modelos_produto),
+          ''
+        ),
+      () => listarModelosProdutoAction()
     ),
 
   criarModeloProduto: (
-    ctx: ContextoClient,
+    _ctx: ContextoClient,
     input: Parameters<typeof cadastroService.criarModeloProduto>[1]
   ) =>
-    executarCadastroLocal(
+    dispatchLocalOrAction(
       () =>
-        cadastroService.criarModeloProduto(ctx, input, cadastroRepositoriesLocal.modelos_produto),
-      'Modelo criado com sucesso!'
+        executarCadastroLocal(
+          () =>
+            cadastroService.criarModeloProduto(_ctx, input, cadastroRepositoriesLocal.modelos_produto),
+          'Modelo criado com sucesso!'
+        ),
+      () => criarModeloProdutoAction(input)
     ),
 
   atualizarModeloProduto: (
-    ctx: ContextoClient,
+    _ctx: ContextoClient,
     input: Parameters<typeof cadastroService.atualizarModeloProduto>[1]
   ) =>
-    executarCadastroLocal(
+    dispatchLocalOrAction(
       () =>
-        cadastroService.atualizarModeloProduto(
-          ctx,
-          input,
-          cadastroRepositoriesLocal.modelos_produto
+        executarCadastroLocal(
+          () =>
+            cadastroService.atualizarModeloProduto(
+              _ctx,
+              input,
+              cadastroRepositoriesLocal.modelos_produto
+            ),
+          'Modelo atualizado com sucesso!'
         ),
-      'Modelo atualizado com sucesso!'
+      () => atualizarModeloProdutoAction(input)
     ),
 
-  excluirModeloProduto: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
+  excluirModeloProduto: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
       () =>
-        cadastroService.excluirModeloProduto(ctx, id, cadastroRepositoriesLocal.modelos_produto),
-      'Modelo desativado com sucesso!'
+        executarCadastroLocalVoid(
+          () =>
+            cadastroService.excluirModeloProduto(_ctx, id, cadastroRepositoriesLocal.modelos_produto),
+          'Modelo desativado com sucesso!'
+        ),
+      () => excluirModeloProdutoAction({ id })
     ),
 
-  listarMaquinas: (ctx: ContextoClient) =>
-    executarCadastroLocal(
-      () => cadastroService.listarMaquinas(ctx, cadastroRepositoriesLocal.maquinas),
-      ''
+  listarMaquinas: (_ctx: ContextoClient) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () => cadastroService.listarMaquinas(_ctx, cadastroRepositoriesLocal.maquinas),
+          ''
+        ),
+      () => listarMaquinasAction()
     ),
 
-  criarMaquina: (ctx: ContextoClient, input: Parameters<typeof cadastroService.criarMaquina>[1]) =>
-    executarCadastroLocal(
-      () => cadastroService.criarMaquina(ctx, input, cadastroRepositoriesLocal.maquinas),
-      'Máquina criada com sucesso!'
+  criarMaquina: (_ctx: ContextoClient, input: Parameters<typeof cadastroService.criarMaquina>[1]) =>
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () =>
+            cadastroService.criarMaquina(
+              _ctx,
+              input,
+              cadastroRepositoriesLocal.maquinas,
+              cadastroRepositoriesLocal.setores
+            ),
+          'Máquina criada com sucesso!'
+        ),
+      () => criarMaquinaAction(input)
     ),
 
   atualizarMaquina: (
-    ctx: ContextoClient,
+    _ctx: ContextoClient,
     input: Parameters<typeof cadastroService.atualizarMaquina>[1]
   ) =>
-    executarCadastroLocal(
-      () => cadastroService.atualizarMaquina(ctx, input, cadastroRepositoriesLocal.maquinas),
-      'Máquina atualizada com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarCadastroLocal(
+          () =>
+            cadastroService.atualizarMaquina(
+              _ctx,
+              input,
+              cadastroRepositoriesLocal.maquinas,
+              cadastroRepositoriesLocal.setores
+            ),
+          'Máquina atualizada com sucesso!'
+        ),
+      () => atualizarMaquinaAction(input)
     ),
 
-  excluirMaquina: (ctx: ContextoClient, id: string) =>
-    executarCadastroLocalVoid(
-      () => cadastroService.excluirMaquina(ctx, id, cadastroRepositoriesLocal.maquinas),
-      'Máquina desativada com sucesso!'
+  excluirMaquina: (_ctx: ContextoClient, id: string) =>
+    dispatchLocalOrActionVoid(
+      () =>
+        executarCadastroLocalVoid(
+          () => cadastroService.excluirMaquina(_ctx, id, cadastroRepositoriesLocal.maquinas),
+          'Máquina desativada com sucesso!'
+        ),
+      () => excluirMaquinaAction({ id })
     ),
 }

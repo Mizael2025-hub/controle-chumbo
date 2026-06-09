@@ -107,7 +107,7 @@
 
 - Informado em **barras**; `borra_kg` obrigatória (≥ 0).
 - Montes elegíveis: `localizacao = setor`, `setor_id` = setor da máquina, liga/lote coerentes, `barras_atuais > 0`, `status ≠ CONSUMIDO`.
-- Modo `automatico`: ordem `posicao_y`, `posicao_x` ascendente; consome até completar barras.
+- Modo `automatico`: ordem `movido_setor_em` ascendente (FIFO de liberação — primeiro monte movido para o setor é consumido primeiro); consome até completar barras, podendo cruzar montes quando o anterior não tem saldo suficiente.
 - Modo `manual`: ordem escolhida pelo usuário.
 - Saldo insuficiente → erro, **não grava**.
 - Edição/exclusão de apontamento: **admin**; estorna alocações anteriores e recalcula se mudar barras, liga, setor ou seleção de montes.

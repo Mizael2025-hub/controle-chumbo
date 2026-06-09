@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Calendar, X } from 'lucide-react'
 import { RelatorioFiltroCategoriaModal } from '@/components/features/relatorios/relatorio-filtro-categoria-modal'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import {
   DIMENSOES_POR_ABA,
   ROTULOS_DIMENSAO,
@@ -79,14 +80,14 @@ export function RelatorioFiltrosSheet({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center"
-        role="dialog"
-        aria-modal="true"
-        data-testid="relatorio-filtros-sheet"
-      >
+      <ModalOverlay aberto variante="sheet">
         <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onFechar} />
-        <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-md rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl max-h-[85vh] overflow-y-auto">
+        <div
+          className="modal-card mobile-sheet-card"
+          role="dialog"
+          aria-modal="true"
+          data-testid="relatorio-filtros-sheet"
+        >
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <h3 className="text-lg font-semibold">Filtros</h3>
@@ -165,7 +166,7 @@ export function RelatorioFiltrosSheet({
                 onLimpar()
                 onFechar()
               }}
-              className="apple-pressable flex-1 min-h-[44px] rounded-ios-btn border border-zinc-200 dark:border-zinc-700 font-medium text-sm"
+              className="btn-modal-secondary text-sm"
               data-testid="btn-limpar-filtros-relatorio"
             >
               Limpar filtros
@@ -187,7 +188,7 @@ export function RelatorioFiltrosSheet({
             </button>
           </div>
         </div>
-      </div>
+      </ModalOverlay>
 
       {categoriaAberta && (
         <RelatorioFiltroCategoriaModal

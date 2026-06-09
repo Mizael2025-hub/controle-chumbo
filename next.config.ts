@@ -14,6 +14,7 @@ const withPWA = require('next-pwa')({
 
 const nextConfig: NextConfig = {
   // Tablet alvo 1200×1920 px — layout responsivo via Tailwind
+  allowedDevOrigins: ['192.168.3.182'],
 }
 
 export default isDev ? nextConfig : withPWA(nextConfig)

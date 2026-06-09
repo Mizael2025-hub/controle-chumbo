@@ -1,5 +1,11 @@
 'use server'
 
+import {
+  getDestinoSaidaRepository,
+  getMonteRepository,
+  getSetorRepository,
+} from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -38,7 +44,7 @@ export async function reservarMonteAction(rawData: unknown): Promise<ActionRespo
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.reservarMonte(ctx, parsed.data)
+    const data = await monteService.reservarMonte(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
     return { success: true, data, message: 'Reserva registrada com sucesso!' }
   } catch (error) {
     return handleError(error)
@@ -52,7 +58,7 @@ export async function cancelarReservaMonteAction(rawData: unknown): Promise<Acti
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.cancelarReservaMonte(ctx, parsed.data)
+    const data = await monteService.cancelarReservaMonte(ctx, parsed.data, await getMonteRepository())
     return { success: true, data, message: 'Reserva cancelada com sucesso!' }
   } catch (error) {
     return handleError(error)
@@ -66,7 +72,7 @@ export async function baixaMonteAction(rawData: unknown): Promise<ActionResponse
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.baixaMonte(ctx, parsed.data)
+    const data = await monteService.baixaMonte(ctx, parsed.data, await getMonteRepository(), await getDestinoSaidaRepository())
     return { success: true, data, message: 'Baixa registrada com sucesso!' }
   } catch (error) {
     return handleError(error)
@@ -80,7 +86,7 @@ export async function moverMonteSetorAction(rawData: unknown): Promise<ActionRes
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.moverMonteParaSetor(ctx, parsed.data)
+    const data = await monteService.moverMonteParaSetor(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
     return { success: true, data, message: 'Monte movido para o setor!' }
   } catch (error) {
     return handleError(error)
@@ -96,7 +102,7 @@ export async function devolverMonteAlmoxarifadoAction(
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.devolverMonteAlmoxarifado(ctx, parsed.data)
+    const data = await monteService.devolverMonteAlmoxarifado(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
     return { success: true, data, message: 'Monte devolvido ao almoxarifado!' }
   } catch (error) {
     return handleError(error)
@@ -112,7 +118,7 @@ export async function listarHistoricoMonteAction(
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.listarHistoricoMonte(ctx, parsed.data.monte_id)
+    const data = await monteService.listarHistoricoMonte(ctx, parsed.data.monte_id, await getMonteRepository(), await getDestinoSaidaRepository())
     return { success: true, data, message: 'Histórico carregado.' }
   } catch (error) {
     return handleError(error)
@@ -126,7 +132,7 @@ export async function trocarPosicaoMonteAction(rawData: unknown): Promise<Action
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await monteService.trocarPosicaoMonte(ctx, parsed.data)
+    const data = await monteService.trocarPosicaoMonte(ctx, parsed.data, await getMonteRepository())
     return { success: true, data, message: 'Posição atualizada!' }
   } catch (error) {
     return handleError(error)

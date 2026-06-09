@@ -3,6 +3,19 @@
 :root {
   --background: #f4f4f5;
   --foreground: #18181b;
+  /* Dock mobile: margens (bottom-4 + left/right-2) + altura da pílula + respiro */
+  --dock-margem-inferior: 1rem;
+  --dock-margem-lateral: 0.5rem;
+  /* Altura interna da pílula (safe-area tratada no bottom + pb-safe interno) */
+  --dock-altura: calc(3.5rem + 0.5rem);
+  --dock-reserva: calc(var(--dock-margem-inferior) + var(--dock-altura) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  --contextual-bar-reserva: 4rem;
+  /* Camadas mobile — empilhamento centralizado */
+  --z-mobile-header: 50;
+  --z-mobile-dock: 100;
+  --z-mobile-contextual: 110;
+  --z-mobile-modal: 200;
+  --z-mobile-modal-nested: 210;
 }
 
 @theme inline {
@@ -11,6 +24,7 @@
   --color-apple-red: #ff3b30;
   --color-apple-green: #34c759;
   --color-apple-blue: #007aff;
+  --color-nav-sidebar: #0d5c5c;
   --radius-ios-btn: 12px;
   --radius-ios-card: 16px;
   --radius-ios-modal: 20px;
@@ -24,10 +38,78 @@
   }
 }
 
+html {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Fallback de altura no Safari iOS (dvh instável em browser/PWA) */
+@supports (-webkit-touch-callout: none) {
+  html,
+  body {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Raiz da dock — fixa fora do fluxo; não compete com scroll por toques (iOS) */
+#app-dock-root {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  overflow: visible;
+  z-index: var(--z-mobile-dock);
+}
+
+.app-dock-mobile {
+  position: fixed;
+  left: var(--dock-margem-lateral);
+  right: var(--dock-margem-lateral);
+  bottom: calc(var(--dock-margem-inferior) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-mobile-dock);
+  pointer-events: auto;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.12),
+    0 8px 10px -6px rgb(0 0 0 / 0.08);
+  border: 1px solid rgb(228 228 231 / 0.9);
+  touch-action: manipulation;
+}
+
+.app-dock-item-inativo {
+  color: #71717a;
+}
+
+.app-dock-item-ativo {
+  color: #0d5c5c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-dock-mobile {
+    background-color: #18181b;
+    border-color: rgb(63 63 70 / 0.9);
+  }
+
+  .app-dock-item-inativo {
+    color: #a1a1aa;
+  }
+}
+
+@media (min-width: 1024px) {
+  #app-dock-root {
+    display: none;
+  }
 }
 
 .apple-pressable {
@@ -44,4 +126,368 @@ body {
 
 .modal-actions {
   padding-bottom: 1rem;
+}
+
+/* Botão secundário em modais — contraste garantido em light/dark */
+.btn-modal-cancel {
+  flex: 1 1 0%;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-ios-btn);
+  min-height: 44px;
+  border: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #e4e4e7;
+  color: #18181b;
+  transition: transform 150ms;
+}
+
+.btn-modal-cancel:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-modal-cancel {
+    background-color: #3f3f46;
+    color: #f4f4f5;
+  }
+}
+
+/* Botão secundário — alias com suporte a largura total em sheets */
+.btn-modal-secondary {
+  flex: 1 1 0%;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-ios-btn);
+  min-height: 44px;
+  border: 1px solid #d4d4d8;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #e4e4e7;
+  color: #18181b;
+  transition: transform 150ms;
+}
+
+.btn-modal-secondary:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-modal-secondary {
+    background-color: #3f3f46;
+    color: #f4f4f5;
+    border-color: #52525b;
+  }
+}
+
+/* Overlay de modal — fundo semitransparente via CSS puro (não depende de Tailwind) */
+.modal-overlay-backdrop {
+  background-color: rgb(0 0 0 / 0.45);
+}
+
+.modal-overlay-backdrop-nested {
+  background-color: rgb(0 0 0 / 0.55);
+}
+
+.modal-overlay-sheet {
+  align-items: flex-end;
+}
+
+@media (min-width: 640px) {
+  .modal-overlay-sheet {
+    align-items: center;
+  }
+}
+
+.z-mobile-modal {
+  z-index: var(--z-mobile-modal);
+}
+
+.z-mobile-modal-nested {
+  z-index: var(--z-mobile-modal-nested);
+}
+
+/* Cartão padrão de modal (portal no body) */
+.modal-card {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1.5rem;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  border-top-left-radius: var(--radius-ios-modal);
+  border-top-right-radius: var(--radius-ios-modal);
+  background-color: #ffffff;
+  color: #18181b;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(228 228 231);
+}
+
+@media (min-width: 640px) {
+  .modal-card {
+    width: 24rem;
+    border-radius: var(--radius-ios-card);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-card {
+    background-color: #18181b;
+    color: #f4f4f5;
+    border-color: rgb(63 63 70);
+  }
+}
+
+/* Bottom sheet — estende .modal-card com altura máxima e rolagem */
+.mobile-sheet-card {
+  max-height: 85vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .mobile-sheet-card {
+    max-width: 28rem;
+  }
+}
+
+.mobile-sheet-card-tall {
+  max-height: 90vh;
+}
+
+/* Barra contextual mobile — fundo sólido (sem translucidez) */
+.mobile-contextual-bar {
+  background-color: #ffffff;
+  border: 1px solid rgb(228 228 231 / 0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  .mobile-contextual-bar {
+    background-color: #18181b;
+    border-color: rgb(63 63 70 / 0.9);
+  }
+}
+
+.contextual-bar-clear-btn {
+  color: #3f3f46;
+}
+
+.contextual-bar-count {
+  color: #52525b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .contextual-bar-clear-btn:not(:disabled) {
+    color: #f4f4f5;
+  }
+
+  .contextual-bar-count {
+    color: #d4d4d8;
+  }
+}
+
+/* Menu dropdown de ações (estoque) — fundo cinza + texto branco (iOS) */
+.acoes-dropdown-menu {
+  background-color: #3f3f46 !important;
+  border: 1px solid #52525b !important;
+  color: #ffffff !important;
+}
+
+.acoes-dropdown-item {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+.acoes-dropdown-item:hover:not(:disabled) {
+  background-color: #52525b !important;
+}
+
+.acoes-dropdown-item span,
+.acoes-dropdown-item svg {
+  color: #ffffff !important;
+}
+
+/* Abas segmentadas mobile */
+.mobile-tab-ativa {
+  background-color: #ffffff;
+  color: #18181b;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.mobile-tab-inativa {
+  background-color: transparent;
+  color: #71717a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mobile-tab-ativa {
+    background-color: #27272a;
+    color: #f4f4f5;
+  }
+
+  .mobile-tab-inativa {
+    color: #a1a1aa;
+  }
+}
+
+/* Card de página — contraste garantido no iOS */
+.mobile-page-card {
+  background-color: #ffffff;
+  color: #18181b;
+  border: 1px solid #e4e4e7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mobile-page-card {
+    background-color: #18181b;
+    color: #f4f4f5;
+    border-color: #27272a;
+  }
+}
+
+/* Menu popover do botão + mobile */
+.mobile-nav-add-menu {
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  color: #18181b;
+}
+
+.mobile-nav-add-arrow {
+  border-top-color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mobile-nav-add-menu {
+    background-color: #18181b;
+    border-color: #3f3f46;
+    color: #f4f4f5;
+  }
+
+  .mobile-nav-add-arrow {
+    border-top-color: #18181b;
+  }
+}
+
+/* Inputs dentro de modais — fundo sólido e contraste em light/dark */
+.modal-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4d8;
+  border-radius: var(--radius-ios-btn);
+  font-size: 16px;
+  min-height: 44px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #fafafa;
+  color: #18181b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-input {
+    background-color: #27272a;
+    border-color: #52525b;
+    color: #f4f4f5;
+  }
+}
+
+/* Campos de formulário em páginas — evita overflow horizontal no mobile */
+.form-field {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Área rolável sem barra visível (mobile) */
+.page-viewport-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 0%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1023px) {
+  .page-viewport-fill {
+    overflow: hidden;
+    max-height: 100%;
+  }
+
+  .page-scroll-inner {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .page-scroll-inner::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.bg-nav-sidebar {
+  background-color: #0d5c5c;
+}
+
+.text-nav-sidebar {
+  color: #0d5c5c;
+}
+
+.border-nav-sidebar {
+  border-color: #0d5c5c;
+}
+
+/* Shell global: viewport limitada; rolagem só na área útil acima da dock */
+.app-viewport-shell {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-main-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1023px) {
+  body[data-dock-visible='true'] .app-viewport-shell {
+    max-height: calc(100dvh - var(--dock-reserva));
+  }
+
+  body[data-dock-visible='true'] .app-main-scroll {
+    padding-bottom: var(--dock-reserva);
+  }
+
+  .contextual-bar-mobile {
+    bottom: var(--dock-reserva);
+    z-index: var(--z-mobile-contextual);
+  }
+
+  .pb-contextual-bar {
+    padding-bottom: calc(var(--dock-reserva) + var(--contextual-bar-reserva));
+  }
+
+  /* Overlay de modal: respiro lateral e acima da dock no mobile */
+  .modal-overlay-mobile {
+    padding-bottom: max(1rem, var(--dock-reserva));
+  }
 }

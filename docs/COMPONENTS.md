@@ -81,10 +81,20 @@ import { DataInputPtBr } from '@/components/ui/data-input-pt-br'
   {/* HeaderSyncStatus aqui */}
 </header>
 
-// Tab Bar Mobile
-<nav className="fixed bottom-0 h-16 w-full apple-blur border-t border-zinc-200/50 flex items-center justify-around pb-safe z-50">
-  {/* Ícones Lucide: w-5 h-5, strokeWidth={1.5} */}
+// Tab Bar Mobile (pílula flutuante — classe .app-dock-mobile em globals.css)
+<nav className="app-dock-mobile" aria-label="Navegação inferior">
+  {/* 5 itens: Início, Estoque, + central, Relatório, Configuração */}
 </nav>
+
+// body com dock visível — padding no main via CSS
+<body data-dock-visible="true">
+  <main className="app-main-scroll">{/* padding-bottom: var(--dock-reserva) no mobile */}</main>
+</body>
+
+// Sidebar Web (lg+)
+<aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] bg-nav-sidebar text-white">
+  {/* Itens + botão "Adicionar novo" com menu popover lateral */}
+</aside>
 ```
 
 ---
@@ -92,20 +102,26 @@ import { DataInputPtBr } from '@/components/ui/data-input-pt-br'
 ## 5. Modal (iOS Share Sheet)
 
 ```tsx
-<div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center">
-  <div className="bg-white w-full sm:w-96 rounded-t-ios-modal sm:rounded-ios-card p-6 animate-in slide-in-from-bottom duration-300 ease-out pb-safe">
+import { ModalOverlay } from '@/components/ui/modal-overlay'
+
+<ModalOverlay aberto variante="sheet" nivel="base">
+  <button type="button" className="absolute inset-0" aria-label="Fechar" />
+  <div className="modal-card mobile-sheet-card" role="dialog" aria-modal="true">
     <div className="w-12 h-1.5 bg-zinc-300 rounded-full mx-auto mb-4 sm:hidden" />
     <h2 className="text-xl font-semibold mb-4">Título</h2>
-    {/* Rodapé de ações — usar .modal-actions para respiro acima da borda inferior */}
     <div className="flex gap-2 modal-actions">
-      <button type="button" className="flex-1 ...">Cancelar</button>
-      <button type="submit" className="flex-1 ...">Confirmar</button>
+      <button type="button" className="btn-modal-cancel">Cancelar</button>
+      <button type="submit" className="apple-pressable flex-1 min-h-[44px] rounded-ios-btn bg-apple-blue text-white font-medium">Confirmar</button>
     </div>
   </div>
-</div>
+</ModalOverlay>
 ```
 
-> **Rodapé de ações:** aplicar a classe `modal-actions` no contêiner dos botões do rodapé (definida em `globals.css`) para evitar que encostem na borda arredondada do modal no desktop (`pb-safe` zera o padding inferior fora de dispositivos com safe area).
+> **Contraste iOS:** usar `.btn-modal-cancel`, `.btn-modal-secondary` e `.modal-card` (CSS com `prefers-color-scheme`) — não depender de `dark:` Tailwind para fundo/texto crítico.
+
+> **Z-index mobile:** header 50 → dock 100 → contextual 110 → modal base 200 → modal nested 210 (tokens `--z-mobile-*` em `globals.css`).
+
+> **Rodapé de ações:** classe `modal-actions` no contêiner dos botões (definida em `globals.css`).
 
 ---
 

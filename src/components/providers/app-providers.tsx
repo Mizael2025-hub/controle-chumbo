@@ -1,17 +1,22 @@
 'use client'
 
 import { LoginGate } from '@/components/features/auth/login-gate'
-import { AppHeader } from '@/components/layout/app-header'
+import { AppShellClient } from '@/components/layout/app-shell-client'
 import { OfflineSyncProvider } from '@/components/providers/offline-sync-provider'
 import { QueryProvider } from '@/components/providers/query-provider'
+import type { UsuarioRole } from '@/lib/types/usuario-role'
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode
+  role: UsuarioRole | null
+}
+
+export function AppProviders({ children, role }: Props) {
   return (
     <LoginGate>
       <QueryProvider>
         <OfflineSyncProvider>
-          <AppHeader />
-          <div className="flex flex-1 flex-col min-h-0">{children}</div>
+          <AppShellClient role={role}>{children}</AppShellClient>
         </OfflineSyncProvider>
       </QueryProvider>
     </LoginGate>

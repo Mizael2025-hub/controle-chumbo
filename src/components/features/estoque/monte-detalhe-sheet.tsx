@@ -2,11 +2,11 @@
 
 import { X } from 'lucide-react'
 import { MonteAcoesModais } from '@/components/features/estoque/monte-acoes-modais'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { MonteMovimentacaoResumo } from '@/components/features/estoque/monte-movimentacao-resumo'
 import { monteDeveAbrirDetalhe } from '@/lib/estoque/monte-deve-abrir-detalhe'
 import { STATUS_MONTE_LABELS, type StatusMonte } from '@/lib/types/status-monte'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
-import { formatarDataHora } from '@/lib/utils/date-time'
 import { formatarKg, formatarNumeroPtBr } from '@/lib/utils/format-number'
 import type { Monte } from '@/repositories/estoque-repository'
 
@@ -14,7 +14,6 @@ type Props = {
   monte: Monte
   numeroLote: string
   nomeLiga: string
-  setoresPorId: Record<string, string>
   role: UsuarioRole
   userId: string
   setores: { id: string; nome: string }[]
@@ -23,16 +22,10 @@ type Props = {
   onAtualizado: () => void
 }
 
-function rotuloSetor(id: string | null | undefined, mapa: Record<string, string>): string {
-  if (!id) return '—'
-  return mapa[id] ?? id
-}
-
 export function MonteDetalheSheet({
   monte,
   numeroLote,
   nomeLiga,
-  setoresPorId,
   role,
   userId,
   setores,
@@ -44,19 +37,19 @@ export function MonteDetalheSheet({
   const ctx = { userId, role }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      data-testid="monte-detalhe-sheet"
-    >
+    <ModalOverlay aberto variante="sheet">
       <button
         type="button"
         className="absolute inset-0"
         aria-label="Fechar"
         onClick={onFechar}
       />
-      <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-md rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
+      <div
+        className="modal-card mobile-sheet-card mobile-sheet-card-tall animate-in slide-in-from-bottom duration-300"
+        role="dialog"
+        aria-modal="true"
+        data-testid="monte-detalhe-sheet"
+      >
         <div className="w-12 h-1.5 bg-zinc-300 rounded-full mx-auto mb-4 sm:hidden" />
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
@@ -98,37 +91,12 @@ export function MonteDetalheSheet({
               <dd className="font-medium">{monte.reservado_para}</dd>
             </div>
           )}
-          {monte.setor_reserva_id && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Setor da reserva</dt>
-              <dd className="font-medium">{rotuloSetor(monte.setor_reserva_id, setoresPorId)}</dd>
-            </div>
-          )}
-          {monte.setor_id && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Setor atual</dt>
-              <dd className="font-medium">{rotuloSetor(monte.setor_id, setoresPorId)}</dd>
-            </div>
-          )}
-          {monte.reservado_em && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Reservado em</dt>
-              <dd className="font-medium tabular-nums">{formatarDataHora(monte.reservado_em)}</dd>
-            </div>
-          )}
-          {monte.movido_setor_em && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Movido para setor em</dt>
-              <dd className="font-medium tabular-nums">{formatarDataHora(monte.movido_setor_em)}</dd>
-            </div>
-          )}
         </dl>
 
         {monteDeveAbrirDetalhe(monte) && (
           <MonteMovimentacaoResumo
             monte={monte}
             numeroLote={numeroLote}
-            setoresPorId={setoresPorId}
             ctx={ctx}
             onAtualizado={onAtualizado}
           />
@@ -150,6 +118,6 @@ export function MonteDetalheSheet({
           </p>
         )}
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

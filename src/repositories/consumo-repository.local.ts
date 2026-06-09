@@ -7,11 +7,7 @@ import type {
   CriarConsumoExecData,
   LoteConsumoOpcao,
 } from '@/repositories/consumo-repository'
-import type { Monte } from '@/repositories/monte-repository'
-
-function ordenarMontesConsumo(montes: Monte[]): Monte[] {
-  return [...montes].sort((a, b) => a.posicao_y - b.posicao_y || a.posicao_x - b.posicao_x)
-}
+import { ordenarMontesPorLiberacao } from '@/lib/consumo/ordenar-montes-liberacao'
 
 export const consumoRepositoryLocal: ConsumoRepository = {
   async listarLotesComSaldoNoSetor(setorId, ligaId) {
@@ -40,7 +36,7 @@ export const consumoRepositoryLocal: ConsumoRepository = {
     if (!lote || lote.liga_id !== ligaId) return []
 
     const montes = await db.montes.where('lote_id').equals(loteId).toArray()
-    return ordenarMontesConsumo(
+    return ordenarMontesPorLiberacao(
       montes.filter(
         (m) =>
           m.localizacao === 'setor' &&

@@ -1,5 +1,14 @@
 'use server'
 
+import {
+  getConsumoRepository,
+  getEstoqueRepository,
+  getMaquinaRepository,
+  getOperadorRepository,
+  getSetorRepository,
+  getTurnoRepository,
+} from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -34,7 +43,7 @@ export async function listarLotesConsumoAction(
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await consumoService.listarLotesConsumoSetor(ctx, parsed.data)
+    const data = await consumoService.listarLotesConsumoSetor(ctx, parsed.data, await getConsumoRepository())
     return { success: true, data, message: 'Lotes carregados.' }
   } catch (error) {
     return handleError(error)
@@ -50,7 +59,13 @@ export async function criarConsumoAction(
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
     const ctx = await getContexto()
-    const data = await consumoService.criarApontamentoConsumo(ctx, parsed.data)
+    const data = await consumoService.criarApontamentoConsumo(ctx, parsed.data, await getConsumoRepository(), {
+      setorRepo: await getSetorRepository(),
+      maquinaRepo: await getMaquinaRepository(),
+      operadorRepo: await getOperadorRepository(),
+      turnoRepo: await getTurnoRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+    })
     return { success: true, data, message: 'Consumo registrado com sucesso!' }
   } catch (error) {
     return handleError(error)

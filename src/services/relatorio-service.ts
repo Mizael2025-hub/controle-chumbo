@@ -1,7 +1,4 @@
-import { getDestinoSaidaRepository, getLigaRepository, getSetorRepository } from '@/lib/data-source/cadastro-repositories'
-import { getEstoqueRepository } from '@/lib/data-source/estoque-repositories'
-import { getRelatorioRepository } from '@/lib/data-source/relatorio-repositories'
-import { AppError } from '@/lib/errors/app-error'
+﻿import { AppError } from '@/lib/errors/app-error'
 import { filtrarResultadoRelatorio, filtrosAvancadosDeUrl } from '@/lib/relatorio/filtros-relatorio'
 import {
   mesclarMetadadosGrupo,
@@ -15,9 +12,23 @@ import {
   periodoParaLimitesDate,
   periodoParaLimitesTimestamptz,
 } from '@/lib/utils/date-time'
+import type { DestinoSaidaRepository, LigaRepository, SetorRepository } from '@/repositories/cadastro-repository'
+import type { EstoqueRepository } from '@/repositories/estoque-repository'
 import type { RelatorioRepository } from '@/repositories/relatorio-repository'
 import type { RelatorioConsultaInput } from '@/validations/relatorio/relatorio-schema'
 import type { LiberacaoGrupoView, LiberacaoLinhaView } from '@/services/saida-service'
+
+export type RelatorioConsultaDeps = {
+  ligaRepo: LigaRepository
+  destinoRepo: DestinoSaidaRepository
+  estoqueRepo: EstoqueRepository
+  setorRepo: SetorRepository
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
+}
 
 type ContextoRelatorio = {
   userId: string
@@ -133,14 +144,16 @@ function resolverLimites(input: RelatorioConsultaInput): {
 export async function listarEntradasRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<EntradaRelatorioLinha[]> {
   assertPodeVerRelatorios(ctx.role)
   const { date } = resolverLimites(input)
 
+  const relatorioRepo = requireRepo(repo)
   const [lotes, ligas] = await Promise.all([
-    repo.listarLotesPorPeriodo(date.inicio, date.fim),
-    getLigaRepository().findAll(true),
+    relatorioRepo.listarLotesPorPeriodo(date.inicio, date.fim),
+    requireRepo(deps).ligaRepo.findAll(true),
   ])
 
   const ligasPorId = new Map(ligas.map((l) => [l.id, l.nome]))
@@ -153,7 +166,7 @@ export async function listarEntradasRelatorio(
       data_chegada: lote.data_chegada,
       peso_inicial_kg: lote.peso_inicial_kg,
       barras_iniciais: lote.barras_iniciais,
-      qtd_montes: await repo.contarMontesPorLote(lote.id),
+      qtd_montes: await relatorioRepo.contarMontesPorLote(lote.id),
     }))
   )
 
@@ -163,16 +176,17 @@ export async function listarEntradasRelatorio(
 export async function listarSaidasRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<LiberacaoGrupoView[]> {
   assertPodeVerRelatorios(ctx.role)
   const { timestamptz } = resolverLimites(input)
 
   const [transacoes, destinos, dadosEstoque, setores] = await Promise.all([
-    repo.listarTransacoesPorPeriodo(timestamptz.inicio, timestamptz.fim),
-    getDestinoSaidaRepository().findAll(true),
-    getEstoqueRepository().fetchDadosBrutos(),
-    getSetorRepository().findAll(true),
+    requireRepo(repo).listarTransacoesPorPeriodo(timestamptz.inicio, timestamptz.fim),
+    requireRepo(deps).destinoRepo.findAll(true),
+    requireRepo(deps).estoqueRepo.fetchDadosBrutos(),
+    requireRepo(deps).setorRepo.findAll(true),
   ])
 
   const { montes, lotes, ligas } = dadosEstoque
@@ -243,14 +257,15 @@ export async function listarSaidasRelatorio(
 export async function listarReservasRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<EventoRelatorioLinha[]> {
   assertPodeVerRelatorios(ctx.role)
   const { timestamptz } = resolverLimites(input)
 
   const [eventos, dadosEstoque] = await Promise.all([
-    repo.listarEventosPorPeriodo(timestamptz.inicio, timestamptz.fim),
-    getEstoqueRepository().fetchDadosBrutos(),
+    requireRepo(repo).listarEventosPorPeriodo(timestamptz.inicio, timestamptz.fim),
+    requireRepo(deps).estoqueRepo.fetchDadosBrutos(),
   ])
 
   const { montes, lotes } = dadosEstoque
@@ -276,14 +291,15 @@ export async function listarReservasRelatorio(
 export async function listarConsumoRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<ConsumoRelatorioLinha[]> {
   assertPodeVerRelatorios(ctx.role)
   const { date } = resolverLimites(input)
 
   const [apontamentos, ligas] = await Promise.all([
-    repo.listarApontamentosPorPeriodo(date.inicio, date.fim),
-    getLigaRepository().findAll(true),
+    requireRepo(repo).listarApontamentosPorPeriodo(date.inicio, date.fim),
+    requireRepo(deps).ligaRepo.findAll(true),
   ])
   const ligasPorId = new Map(ligas.map((l) => [l.id, l.nome]))
 
@@ -306,11 +322,12 @@ export async function listarConsumoRelatorio(
 export async function buscarEntradaDetalhe(
   ctx: ContextoRelatorio,
   loteId: string,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<EntradaRelatorioDetalhe | null> {
   assertPodeVerRelatorios(ctx.role)
 
-  const { lotes, ligas } = await getEstoqueRepository().fetchDadosBrutos()
+  const { lotes, ligas } = await requireRepo(deps).estoqueRepo.fetchDadosBrutos()
   const lote = lotes.find((l) => l.id === loteId)
   if (!lote) return null
 
@@ -323,7 +340,7 @@ export async function buscarEntradaDetalhe(
     data_chegada: lote.data_chegada,
     peso_inicial_kg: lote.peso_inicial_kg,
     barras_iniciais: lote.barras_iniciais,
-    qtd_montes: await repo.contarMontesPorLote(lote.id),
+    qtd_montes: await requireRepo(repo).contarMontesPorLote(lote.id),
     colunas_grade: lote.colunas_grade,
     linhas_grade: lote.linhas_grade,
     created_at: lote.created_at,
@@ -333,19 +350,21 @@ export async function buscarEntradaDetalhe(
 export async function buscarConsumoDetalhe(
   ctx: ContextoRelatorio,
   apontamentoId: string,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<ConsumoRelatorioDetalhe | null> {
   assertPodeVerRelatorios(ctx.role)
 
-  const apontamento = await repo.findApontamentoById(apontamentoId)
+  const relatorioRepo = requireRepo(repo)
+  const apontamento = await relatorioRepo.findApontamentoById(apontamentoId)
   if (!apontamento) return null
 
   const [alocacoesRaw, ligas] = await Promise.all([
-    repo.listarAlocacoesPorApontamentos([apontamentoId]),
-    getLigaRepository().findAll(true),
+    relatorioRepo.listarAlocacoesPorApontamentos([apontamentoId]),
+    requireRepo(deps).ligaRepo.findAll(true),
   ])
   const ligasPorId = new Map(ligas.map((l) => [l.id, l.nome]))
-  const { montes, lotes } = await getEstoqueRepository().fetchDadosBrutos()
+  const { montes, lotes } = await requireRepo(deps).estoqueRepo.fetchDadosBrutos()
   const montesPorId = new Map(montes.map((m) => [m.id, m]))
   const lotesPorId = new Map(lotes.map((l) => [l.id, l]))
 
@@ -383,17 +402,18 @@ export async function buscarConsumoDetalhe(
 export async function consultarRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<RelatorioResultado> {
   switch (input.aba) {
     case 'entradas':
-      return { aba: 'entradas', linhas: await listarEntradasRelatorio(ctx, input, repo) }
+      return { aba: 'entradas', linhas: await listarEntradasRelatorio(ctx, input, repo, deps) }
     case 'saidas':
-      return { aba: 'saidas', linhas: await listarSaidasRelatorio(ctx, input, repo) }
+      return { aba: 'saidas', linhas: await listarSaidasRelatorio(ctx, input, repo, deps) }
     case 'reservas':
-      return { aba: 'reservas', linhas: await listarReservasRelatorio(ctx, input, repo) }
+      return { aba: 'reservas', linhas: await listarReservasRelatorio(ctx, input, repo, deps) }
     case 'consumo':
-      return { aba: 'consumo', linhas: await listarConsumoRelatorio(ctx, input, repo) }
+      return { aba: 'consumo', linhas: await listarConsumoRelatorio(ctx, input, repo, deps) }
   }
 }
 
@@ -412,10 +432,11 @@ function linhaCsv(celulas: (string | number)[]): string {
 export async function gerarCsvRelatorio(
   ctx: ContextoRelatorio,
   input: RelatorioConsultaInput,
-  repo: RelatorioRepository = getRelatorioRepository()
+  repo?: RelatorioRepository,
+  deps?: RelatorioConsultaDeps
 ): Promise<string> {
   assertPodeExportarCsv(ctx.role)
-  const resultadoBruto = await consultarRelatorio(ctx, input, repo)
+  const resultadoBruto = await consultarRelatorio(ctx, input, repo, deps)
   const resultado = filtrarResultadoRelatorio(
     resultadoBruto,
     filtrosAvancadosDeUrl(input)

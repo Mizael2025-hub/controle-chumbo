@@ -6,26 +6,29 @@
 
 ## ▶️ TAREFA ATUAL
 
-### Título
-Supabase Fase D — migrations, auth real, RLS
-
-### Objetivo
-Migrar de `DATA_SOURCE=local` para Supabase: migrations SQL, login real, repositories `.supabase.ts`, RLS por role e sync outbox.
-
-### Referências
-- `docs/DATABASE.md`, `docs/DEV_MODE.md`, `docs/SECURITY.md`
+_(nenhuma — deploy CI/CD concluído; validar login em produção)_
 
 ---
 
 ## ⏸️ PRÓXIMAS TAREFAS (Backlog)
 
-_(nenhuma — Fase B concluída; próximo marco = Fase D)_
+1. **RLS por role** — migration `202606020007_rls_roles.sql` (endurecimento opcional pós-MVP)
+2. **Auth Supabase produção** — habilitar Leaked Password Protection no Dashboard
+3. **Redirect URLs Vercel** — confirmar Site URL após deploy final
+
+> **Backup navegação:** tag Git `restore/pre-nav-2026-06-05` — ver `RESTORE.md`
+
 ---
 
 ## ✅ HISTÓRICO DE TAREFAS CONCLUÍDAS
 
 | Data | Tarefa | Arquivos |
 |---|---|---|
+| 2026-06-09 | Auditoria Supabase + CI/CD GitHub/Vercel | supabase/migrations/202606090001_security_functions.sql, .gitignore, TASKS.md, PROJECT_MAP.md |
+| 2026-06-08 | Supabase Fase D — migrations, auth, repos, sync | supabase/migrations/*, reset_completo_projeto.sql, database.types.ts, *-repository.supabase.ts, auth-actions, /login, middleware, /api/sync, server-repositories |
+| 2026-06-08 | Filtros relatório overlay cascata | modal-overlay.tsx, globals.css (backdrop nested) |
+| 2026-06-08 | FIFO consumo por ordem de liberação | ordenar-montes-liberacao, consumo-repository.local, BUSINESS_RULES §3.6 |
+| 2026-06-05 | Navegação web/mobile (sidebar + dock) | app-sidebar, app-tab-bar, nav-add-menu, nav-config, RESTORE.md |
 | 2026-06-05 | UI/UX navegação + modais | modal-actions, InicioLink, headers padronizados, estoque sem atalhos |
 | 2026-06-05 | Melhorias Relatórios | filtros cascata, resumo kg/barras, obs vendas, card consumo |
 | 2026-06-05 | Relatórios (Fase B t9) | relatorio-repository/service/actions/client, /relatorios, filtros URL+store, CSV |
@@ -46,26 +49,13 @@ _(nenhuma — Fase B concluída; próximo marco = Fase D)_
 
 ## 📋 SESSÕES DE TRABALHO
 
+### Sessão 2026-06-08 (Supabase Fase D)
+- **Objetivo:** Migrations SQL, auth real, repositories `.supabase.ts`, RLS MVP, sync outbox
+- **Concluído:** 7 migrations, reset SQL, types, 7 repos Supabase, `/login`, middleware, `/api/sync`, factories server/client separadas, services com `requireRepo`
+- **Pendente (manual):** aplicar migrations no projeto remoto, seed admin, trocar `DATA_SOURCE=supabase` no `.env.local`
+- **Problemas encontrados:** boundary client/server exigiu split `*-repositories.server.ts`; `useRepo` renomeado para `requireRepo` (ESLint hooks)
+
 ### Sessão 2026-06-05 (UI/UX navegação + modais)
 - **Objetivo:** Espaçamento rodapé modais, padronizar link Início, remover atalhos do estoque
 - **Concluído:** `.modal-actions` em 11 modais, `InicioLink`, headers Contagem/Consumo/Relatórios/Entrada
-- **Pendente:** Supabase Fase D
-- **Problemas encontrados:** nenhum
-
-### Sessão 2026-06-05 (Melhorias Relatórios)
-- **Objetivo:** Filtros cascata, card resumo, observação vendas, ajustes UI consumo/entrada
-- **Concluído:** popup filtros 6 dimensões, resumo reativo, obs em saídas, CSV filtrado
-- **Pendente:** Supabase Fase D
-- **Problemas encontrados:** nenhum
-
-### Sessão 2026-06-05 (Relatórios — Fase B encerrada)
-- **Objetivo:** Relatórios com filtros persistentes, drill-down e export CSV
-- **Concluído:** `/relatorios` 4 abas, Zustand+URL, CSV admin, redirect `/estoque/historico`
-- **Pendente:** Supabase Fase D
-- **Problemas encontrados:** nenhum
-
-### Sessão 2026-06-04 (Fase PWA auditoria + estoque unificado)
-- **Objetivo:** Reset operacional, unificar saída no estoque, visual grade, barra ações, contagem física
-- **Concluído:** reset Dexie/SQL, /saida→/estoque, EstoqueView seleção+dropdown, contagem Dexie v4
-- **Pendente:** Relatórios (próximo backlog)
 - **Problemas encontrados:** nenhum

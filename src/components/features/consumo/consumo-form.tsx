@@ -1,7 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { agentLog } from '@/lib/debug/agent-log'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { cadastroClient } from '@/lib/cadastros/cadastro-client'
@@ -34,6 +35,28 @@ type FormValues = {
 
 export function ConsumoForm({ ctx }: Props) {
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    // #region agent log
+    requestAnimationFrame(() => {
+      const main = document.querySelector('[data-testid="app-main-scroll"]')
+      agentLog({
+        location: 'consumo-form.tsx:mount',
+        message: 'Consumo — medição de overflow horizontal',
+        hypothesisId: 'H4',
+        runId: 'post-fix-v3',
+        data: {
+          innerWidth: window.innerWidth,
+          docScrollWidth: document.documentElement.scrollWidth,
+          bodyScrollWidth: document.body.scrollWidth,
+          mainClientWidth: main?.clientWidth ?? null,
+          mainScrollWidth: main instanceof HTMLElement ? main.scrollWidth : null,
+          temOverflow: document.documentElement.scrollWidth > window.innerWidth,
+        },
+      })
+    })
+    // #endregion
+  }, [])
 
   const { data: visaoEstoque } = useQuery({
     queryKey: ['estoque', 'visao'],
@@ -92,7 +115,7 @@ export function ConsumoForm({ ctx }: Props) {
       liga_id: '',
       lote_id: '',
       barras: '',
-      borra_kg: '0',
+      borra_kg: '',
       observacoes: '',
     },
   })
@@ -152,7 +175,7 @@ export function ConsumoForm({ ctx }: Props) {
         liga_id: ligaIdForm,
         lote_id: '',
         barras: '',
-        borra_kg: '0',
+        borra_kg: '',
         observacoes: '',
       })
       void queryClient.invalidateQueries({ queryKey: ['estoque', 'visao'] })
@@ -164,7 +187,11 @@ export function ConsumoForm({ ctx }: Props) {
   const onSubmit = form.handleSubmit((values) => salvar.mutate(values))
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4 max-w-lg" data-testid="consumo-form">
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col gap-4 max-lg:gap-3 w-full min-w-0 max-w-lg pb-4"
+      data-testid="consumo-form"
+    >
       <p className="text-sm text-zinc-500">
         Registre o consumo diário de chumbo já liberado nos setores de produção.
       </p>
@@ -194,7 +221,7 @@ export function ConsumoForm({ ctx }: Props) {
           {...form.register('setor_id', {
             onChange: () => form.setValue('maquina_id', ''),
           })}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
+          className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
           data-testid="select-setor-consumo"
         >
           <option value="">Selecione</option>
@@ -211,7 +238,7 @@ export function ConsumoForm({ ctx }: Props) {
         <select
           {...form.register('maquina_id')}
           disabled={!setorId}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] disabled:opacity-50"
+          className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] disabled:opacity-50"
           data-testid="select-maquina-consumo"
         >
           <option value="">Selecione</option>
@@ -228,7 +255,7 @@ export function ConsumoForm({ ctx }: Props) {
           <label className="text-sm font-medium">Operador</label>
           <select
             {...form.register('operador_id')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
+            className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
             data-testid="select-operador-consumo"
           >
             <option value="">Selecione</option>
@@ -243,7 +270,7 @@ export function ConsumoForm({ ctx }: Props) {
           <label className="text-sm font-medium">Turno</label>
           <select
             {...form.register('turno_id')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
+            className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
             data-testid="select-turno-consumo"
           >
             <option value="">Selecione</option>
@@ -262,7 +289,7 @@ export function ConsumoForm({ ctx }: Props) {
           {...form.register('liga_id', {
             onChange: () => form.setValue('lote_id', ''),
           })}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
+          className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px]"
           data-testid="select-liga-consumo"
         >
           <option value="">Selecione</option>
@@ -279,7 +306,7 @@ export function ConsumoForm({ ctx }: Props) {
         <select
           {...form.register('lote_id')}
           disabled={!ligaIdForm || !setorId}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] disabled:opacity-50"
+          className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] disabled:opacity-50"
           data-testid="select-lote-consumo"
         >
           <option value="">Selecione</option>
@@ -301,7 +328,7 @@ export function ConsumoForm({ ctx }: Props) {
             type="number"
             min={1}
             {...form.register('barras')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] tabular-nums"
+            className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] tabular-nums"
             data-testid="input-barras-consumo"
           />
         </div>
@@ -312,7 +339,7 @@ export function ConsumoForm({ ctx }: Props) {
             min={0}
             step="0.01"
             {...form.register('borra_kg')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] tabular-nums"
+            className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] min-h-[44px] tabular-nums"
             data-testid="input-borra-consumo"
           />
         </div>
@@ -324,7 +351,7 @@ export function ConsumoForm({ ctx }: Props) {
           rows={2}
           maxLength={500}
           {...form.register('observacoes')}
-          className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] resize-none"
+          className="form-field px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px] resize-none"
           data-testid="input-observacao-consumo"
         />
       </div>

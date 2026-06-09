@@ -39,7 +39,7 @@ export function SaidaView({ userId, role }: Props) {
           type="button"
           onClick={() => setAba('nova')}
           className={`flex-1 min-h-[44px] rounded-ios-btn text-sm font-medium ${
-            aba === 'nova' ? 'bg-white dark:bg-zinc-800 shadow-sm' : ''
+            aba === 'nova' ? 'mobile-tab-ativa' : 'mobile-tab-inativa'
           }`}
           data-testid="aba-saida-nova"
         >
@@ -49,7 +49,7 @@ export function SaidaView({ userId, role }: Props) {
           type="button"
           onClick={() => setAba('historico')}
           className={`flex-1 min-h-[44px] rounded-ios-btn text-sm font-medium ${
-            aba === 'historico' ? 'bg-white dark:bg-zinc-800 shadow-sm' : ''
+            aba === 'historico' ? 'mobile-tab-ativa' : 'mobile-tab-inativa'
           }`}
           data-testid="aba-saida-historico"
         >

@@ -1,19 +1,23 @@
-import {
+﻿import {
   calcularSaldosMontes,
   somarSaldosEstoque,
   type SaldosEstoque,
 } from '@/lib/estoque/calcular-saldos'
-import { getSetorRepository } from '@/lib/data-source/cadastro-repositories'
-import { getEstoqueRepository } from '@/lib/data-source/estoque-repositories'
 import { AppError } from '@/lib/errors/app-error'
+import type { UsuarioRole } from '@/lib/types/usuario-role'
+import type { SetorRepository } from '@/repositories/cadastro-repository'
+import type { EstoqueRepository, Liga, Lote, Monte } from '@/repositories/estoque-repository'
 
 const LOTE_DEMO_NUMERO = 'DEMO-001'
-import type { UsuarioRole } from '@/lib/types/usuario-role'
-import type { EstoqueRepository, Liga, Lote, Monte } from '@/repositories/estoque-repository'
 
 type ContextoEstoque = {
   userId: string
   role: UsuarioRole
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
 }
 
 export type LoteEstoque = Lote & {
@@ -80,14 +84,18 @@ function montarVisao(ligas: Liga[], lotes: Lote[], montes: Monte[]): { ligas: Li
 
 export async function listarVisaoEstoque(
   ctx: ContextoEstoque,
-  repo: EstoqueRepository = getEstoqueRepository()
+  estoqueRepo?: EstoqueRepository,
+  setorRepo?: SetorRepository
 ): Promise<VisaoEstoque> {
   try {
     assertPodeVerEstoque(ctx.role)
 
+    const estoque = requireRepo(estoqueRepo)
+    const setoresRepository = requireRepo(setorRepo)
+
     const [{ ligas, lotes, montes }, setores] = await Promise.all([
-      repo.fetchDadosBrutos(),
-      getSetorRepository().findAll(),
+      estoque.fetchDadosBrutos(),
+      setoresRepository.findAll(),
     ])
 
     const setores_por_id = Object.fromEntries(setores.map((s) => [s.id, s.nome]))

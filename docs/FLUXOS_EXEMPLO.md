@@ -69,8 +69,8 @@
 **Pré-condição:** Três montes no setor VRLA, liga 5, com barras (20, 15, 30). Apontamento: **20 barras**, borra **3 kg**.
 
 1. **Consumo** → novo apontamento: data hoje, setor VRLA, máquina, operador, turno, liga 5, lote, modo **automático**.
-2. Sistema ordena montes por `posicao_y`, `posicao_x` (dentro do setor/liga).
-3. Aloca 20 barras (ex.: 15 do primeiro + 5 do segundo).
+2. Sistema ordena montes por `movido_setor_em` ascendente (ordem de liberação/movimentação para o setor).
+3. Aloca 20 barras (ex.: esgota o monte liberado primeiro e completa no segundo, se necessário).
 4. **Resultado esperado:**
   - `apontamentos_consumo` + linhas `alocacoes_consumo`
   - Montes atualizados; se algum zera → `CONSUMIDO`

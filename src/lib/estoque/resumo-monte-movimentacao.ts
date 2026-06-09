@@ -8,24 +8,19 @@ export type ResumoMonteMovimentacao = {
   destaque: 'setor' | 'consumido' | 'parcial' | 'info'
 }
 
-export function montarResumoMonte(
-  monte: Monte,
-  setoresPorId: Record<string, string>
-): ResumoMonteMovimentacao {
+export function montarResumoMonte(monte: Monte): ResumoMonteMovimentacao {
   if (monte.localizacao === 'setor') {
-    const setor = monte.setor_id ? setoresPorId[monte.setor_id] ?? 'setor' : 'setor'
     return {
       titulo: 'Material no setor',
-      descricao: `Monte transferido para ${setor}. Use o histórico abaixo ou devolva ao almoxarifado se necessário.`,
+      descricao: '',
       destaque: 'setor',
     }
   }
 
   if (monteEstaConsumido(monte)) {
     return {
-      titulo: 'Liberação / baixa total',
-      descricao:
-        'Este monte foi baixado por completo (ex.: venda direta ou liberação total). Confira o destino no histórico e estorne se precisar reverter.',
+      titulo: 'Consumido',
+      descricao: '',
       destaque: 'consumido',
     }
   }

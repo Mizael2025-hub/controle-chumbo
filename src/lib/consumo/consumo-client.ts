@@ -1,7 +1,10 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import { criarConsumoAction, listarLotesConsumoAction } from '@/actions/consumo-actions'
+import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
+import { dispatchLocalOrAction } from '@/lib/data-source/client-dispatch'
 import { consumoRepositoryLocalClient } from '@/lib/data-source/consumo-repositories'
+import { estoqueRepositoryLocalClient } from '@/lib/data-source/estoque-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import type { ActionResponse } from '@/lib/types/action-response'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
@@ -14,13 +17,10 @@ type ContextoClient = {
   role: UsuarioRole
 }
 
-async function executar<T>(
+async function executarLocal<T>(
   operacao: () => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
   try {
     const data = await operacao()
     return { success: true, data, message }
@@ -33,18 +33,33 @@ async function executar<T>(
 }
 
 const repo = () => consumoRepositoryLocalClient
+const deps = () => ({
+  setorRepo: cadastroRepositoriesLocal.setores,
+  maquinaRepo: cadastroRepositoriesLocal.maquinas,
+  operadorRepo: cadastroRepositoriesLocal.operadores,
+  turnoRepo: cadastroRepositoriesLocal.turnos,
+  estoqueRepo: estoqueRepositoryLocalClient,
+})
 
 export const consumoClient = {
   listarLotes: (ctx: ContextoClient, input: ListarLotesConsumoInput) =>
-    executar(
-      () => consumoService.listarLotesConsumoSetor(ctx, input, repo()),
-      'Lotes carregados.'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => consumoService.listarLotesConsumoSetor(ctx, input, repo()),
+          'Lotes carregados.'
+        ),
+      () => listarLotesConsumoAction(input)
     ),
 
   criar: (ctx: ContextoClient, input: CriarConsumoInput) =>
-    executar(
-      () => consumoService.criarApontamentoConsumo(ctx, input, repo()),
-      'Consumo registrado com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => consumoService.criarApontamentoConsumo(ctx, input, repo(), deps()),
+          'Consumo registrado com sucesso!'
+        ),
+      () => criarConsumoAction(input)
     ),
 }
 

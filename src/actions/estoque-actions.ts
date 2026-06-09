@@ -1,5 +1,7 @@
 'use server'
 
+import { getEstoqueRepository, getSetorRepository } from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -25,7 +27,7 @@ export async function listarVisaoEstoqueAction(): Promise<
 > {
   try {
     const ctx = await getContexto()
-    const data = await estoqueService.listarVisaoEstoque(ctx)
+    const data = await estoqueService.listarVisaoEstoque(ctx, await getEstoqueRepository(), await getSetorRepository())
     return { success: true, data }
   } catch (error) {
     return handleError(error)

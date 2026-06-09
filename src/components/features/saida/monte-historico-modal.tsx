@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { monteClient } from '@/lib/monte/monte-client'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import { formatarDataHora } from '@/lib/utils/date-time'
@@ -24,14 +25,14 @@ export function MonteHistoricoModal({ ctx, monte, loteNumero, onFechar }: Props)
   })
 
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      data-testid="monte-historico-modal"
-    >
+    <ModalOverlay aberto variante="sheet">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onFechar} />
-      <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-md rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl max-h-[85vh] overflow-y-auto">
+      <div
+        className="modal-card mobile-sheet-card"
+        role="dialog"
+        aria-modal="true"
+        data-testid="monte-historico-modal"
+      >
         <h3 className="text-lg font-semibold mb-1">Histórico do monte</h3>
         <p className="text-sm text-zinc-500 mb-4">
           Lote {loteNumero} · ({monte.posicao_x + 1},{monte.posicao_y + 1})
@@ -64,6 +65,6 @@ export function MonteHistoricoModal({ ctx, monte, loteNumero, onFechar }: Props)
           ))}
         </ul>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

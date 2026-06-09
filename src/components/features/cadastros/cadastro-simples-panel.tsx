@@ -15,6 +15,7 @@ import {
   type CriarCadastroSimplesInput,
 } from '@/validations/cadastros/cadastro-schema'
 import { CadastroPageHeader } from '@/components/features/cadastros/cadastro-page-header'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { parseSortOrderInput } from '@/lib/utils/format-number'
 
 type ContextoClient = { userId: string; role: UsuarioRole }
@@ -49,7 +50,7 @@ export function CadastroSimplesPanel({
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<CadastroBase | null>(null)
 
-  const { data: registros = [], isLoading } = useQuery({
+  const { data: registros = [], isLoading, isError, error } = useQuery({
     queryKey: [queryKey],
     queryFn: async () => {
       const res = await listar(ctx)
@@ -157,6 +158,10 @@ export function CadastroSimplesPanel({
 
       {isLoading ? (
         <p className="text-zinc-500 text-center py-8">Carregando...</p>
+      ) : isError ? (
+        <p className="text-apple-red text-center py-8">
+          Erro ao carregar: {error instanceof Error ? error.message : 'desconhecido'}
+        </p>
       ) : registros.length === 0 ? (
         <p className="text-zinc-500 text-center py-8">Nenhum registro cadastrado.</p>
       ) : (
@@ -218,9 +223,8 @@ export function CadastroSimplesPanel({
         </ul>
       )}
 
-      {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center">
-          <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-t-ios-modal sm:rounded-ios-card p-6 animate-in slide-in-from-bottom duration-300 pb-safe">
+      <ModalOverlay aberto={modalAberto}>
+          <div className="modal-card animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 bg-zinc-300 rounded-full mx-auto mb-4 sm:hidden" />
             <h2 className="text-xl font-semibold mb-4">
               {editando ? `Editar ${entidadeLabel}` : `Novo ${entidadeLabel}`}
@@ -259,7 +263,7 @@ export function CadastroSimplesPanel({
                 <button
                   type="button"
                   onClick={fecharModal}
-                  className="apple-pressable flex-1 bg-zinc-100 dark:bg-zinc-800 font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+                  className="btn-modal-cancel"
                 >
                   Cancelar
                 </button>
@@ -274,8 +278,7 @@ export function CadastroSimplesPanel({
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </ModalOverlay>
     </div>
   )
 }

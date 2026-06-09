@@ -23,7 +23,7 @@ type Props = {
 }
 
 const CLASSE_BASE =
-  'w-full px-3 py-2 pr-10 border border-zinc-300 dark:border-zinc-700 rounded-ios-btn focus:outline-none focus:ring-2 focus:ring-apple-blue/50 text-[16px] min-h-[44px] tabular-nums bg-white dark:bg-zinc-900'
+  'form-field px-3 py-2 pr-10 border border-zinc-300 dark:border-zinc-700 rounded-ios-btn focus:outline-none focus:ring-2 focus:ring-apple-blue/50 text-[16px] min-h-[44px] tabular-nums bg-white dark:bg-zinc-900'
 
 export function DataInputPtBr({
   id,

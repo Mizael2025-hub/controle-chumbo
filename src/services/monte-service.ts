@@ -1,14 +1,10 @@
-import { monteTemReservaAtiva, monteEstaConsumido } from '@/lib/estoque/calcular-saldos'
+﻿import { monteTemReservaAtiva, monteEstaConsumido } from '@/lib/estoque/calcular-saldos'
 import { calcularPesoBaixado } from '@/lib/monte/calcular-baixa'
-import {
-  getDestinoSaidaRepository,
-  getSetorRepository,
-} from '@/lib/data-source/cadastro-repositories'
-import { getMonteRepository } from '@/lib/data-source/monte-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import { STATUS_MONTE, type StatusMonte } from '@/lib/types/status-monte'
 import { TIPOS_EVENTO_MONTE } from '@/lib/types/tipo-evento-monte'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
+import type { DestinoSaidaRepository, SetorRepository } from '@/repositories/cadastro-repository'
 import type { Monte, MonteRepository } from '@/repositories/monte-repository'
 import type {
   BaixaMonteInput,
@@ -24,6 +20,11 @@ type ContextoMonte = {
   role: UsuarioRole
 }
 
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
+}
+
 function assertAdmin(role: UsuarioRole): void {
   if (role !== 'admin') {
     throw AppError.unauthorized()
@@ -32,7 +33,7 @@ function assertAdmin(role: UsuarioRole): void {
 
 async function getMonteAtivo(
   monteId: string,
-  repo: MonteRepository = getMonteRepository()
+  repo: MonteRepository
 ): Promise<Monte> {
   const monte = await repo.findById(monteId)
   if (!monte) throw AppError.notFound('Monte')
@@ -70,17 +71,19 @@ function limparReserva(): {
 export async function reservarMonte(
   ctx: ContextoMonte,
   input: ReservarMonteInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository,
+  setorRepo?: SetorRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await getMonteAtivo(input.monte_id, repo)
+    const monteRepo = requireRepo(repo)
+    const monte = await getMonteAtivo(input.monte_id, monteRepo)
 
     if (monteTemReservaAtiva(monte)) {
       throw AppError.validation('Monte já possui reserva ativa.')
     }
 
-    const setor = await getSetorRepository().findById(input.setor_reserva_id)
+    const setor = await requireRepo(setorRepo).findById(input.setor_reserva_id)
     if (!setor || !setor.is_active) {
       throw AppError.validation('Setor de reserva inválido.')
     }
@@ -88,14 +91,14 @@ export async function reservarMonte(
     const agora = new Date().toISOString()
     const destinatario = input.reservado_para?.trim() || setor.nome
 
-    const atualizado = await repo.update(input.monte_id, input.updated_at, {
+    const atualizado = await monteRepo.update(input.monte_id, input.updated_at, {
       status: STATUS_MONTE.RESERVADO,
       setor_reserva_id: setor.id,
       reservado_para: destinatario,
       reservado_em: agora,
     })
 
-    await repo.createEvento({
+    await monteRepo.createEvento({
       monte_id: monte.id,
       tipo: TIPOS_EVENTO_MONTE.RESERVA,
       destinatario,
@@ -113,11 +116,12 @@ export async function reservarMonte(
 export async function cancelarReservaMonte(
   ctx: ContextoMonte,
   input: CancelarReservaMonteInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await repo.findById(input.monte_id)
+    const monteRepo = requireRepo(repo)
+    const monte = await monteRepo.findById(input.monte_id)
     if (!monte) throw AppError.notFound('Monte')
 
     if (!monteTemReservaAtiva(monte)) {
@@ -125,15 +129,15 @@ export async function cancelarReservaMonte(
     }
 
     const agora = new Date().toISOString()
-    const novoStatus = await statusAposCancelarReserva(monte.id, repo)
+    const novoStatus = await statusAposCancelarReserva(monte.id, monteRepo)
     const destinatario = monte.reservado_para ?? 'Reserva cancelada'
 
-    const atualizado = await repo.update(input.monte_id, input.updated_at, {
+    const atualizado = await monteRepo.update(input.monte_id, input.updated_at, {
       status: novoStatus,
       ...limparReserva(),
     })
 
-    await repo.createEvento({
+    await monteRepo.createEvento({
       monte_id: monte.id,
       tipo: TIPOS_EVENTO_MONTE.CANCELAMENTO_RESERVA,
       destinatario,
@@ -151,17 +155,19 @@ export async function cancelarReservaMonte(
 export async function baixaMonte(
   ctx: ContextoMonte,
   input: BaixaMonteInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository,
+  destinoRepo?: DestinoSaidaRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await getMonteAtivo(input.monte_id, repo)
+    const monteRepo = requireRepo(repo)
+    const monte = await getMonteAtivo(input.monte_id, monteRepo)
 
     if (input.barras_baixadas > monte.barras_atuais) {
       throw AppError.validation('Barras informadas excedem o saldo do monte.')
     }
 
-    const destino = await getDestinoSaidaRepository().findById(input.destino_saida_id)
+    const destino = await requireRepo(destinoRepo).findById(input.destino_saida_id)
     if (!destino || !destino.is_active) {
       throw AppError.validation('Destino de saída inválido.')
     }
@@ -187,7 +193,7 @@ export async function baixaMonte(
       novoStatus = STATUS_MONTE.PARCIAL
     }
 
-    await repo.createTransacao({
+    await monteRepo.createTransacao({
       monte_id: monte.id,
       peso_baixado_kg: pesoBaixado,
       barras_baixadas: input.barras_baixadas,
@@ -198,7 +204,7 @@ export async function baixaMonte(
       created_by: ctx.userId,
     })
 
-    return repo.update(input.monte_id, input.updated_at, {
+    return monteRepo.update(input.monte_id, input.updated_at, {
       peso_atual_kg: baixaTotal ? 0 : novoPeso,
       barras_atuais: baixaTotal ? 0 : novasBarras,
       status: novoStatus,
@@ -213,17 +219,19 @@ export async function baixaMonte(
 export async function moverMonteParaSetor(
   ctx: ContextoMonte,
   input: MoverMonteSetorInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository,
+  setorRepo?: SetorRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await getMonteAtivo(input.monte_id, repo)
+    const monteRepo = requireRepo(repo)
+    const monte = await getMonteAtivo(input.monte_id, monteRepo)
 
     if (monte.localizacao !== 'almoxarifado') {
       throw AppError.validation('Monte já está em um setor. Devolva ao almoxarifado antes.')
     }
 
-    const setor = await getSetorRepository().findById(input.setor_id)
+    const setor = await requireRepo(setorRepo).findById(input.setor_id)
     if (!setor || !setor.is_active) {
       throw AppError.validation('Setor inválido.')
     }
@@ -238,13 +246,13 @@ export async function moverMonteParaSetor(
     const destinatarioBase = obs ? `${setor.nome} — ${obs}` : setor.nome
 
     if (barrasMovidas === monte.barras_atuais) {
-      const atualizado = await repo.update(input.monte_id, input.updated_at, {
+      const atualizado = await monteRepo.update(input.monte_id, input.updated_at, {
         localizacao: 'setor',
         setor_id: setor.id,
         movido_setor_em: agora,
       })
 
-      await repo.createEvento({
+      await monteRepo.createEvento({
         monte_id: monte.id,
         tipo: TIPOS_EVENTO_MONTE.MOVIDO_PARA_SETOR,
         destinatario: destinatarioBase,
@@ -264,16 +272,16 @@ export async function moverMonteParaSetor(
       novoStatusPai = STATUS_MONTE.RESERVADO
     }
 
-    const posSetor = await repo.proximaPosicaoSetorNoLote(monte.lote_id)
+    const posSetor = await monteRepo.proximaPosicaoSetorNoLote(monte.lote_id)
     const destinatarioParcial = `${destinatarioBase} (${barrasMovidas} barras)`
 
-    const paiAtualizado = await repo.update(input.monte_id, input.updated_at, {
+    const paiAtualizado = await monteRepo.update(input.monte_id, input.updated_at, {
       peso_atual_kg: novoPesoPai,
       barras_atuais: novasBarrasPai,
       status: novoStatusPai,
     })
 
-    const filho = await repo.createMonte({
+    const filho = await monteRepo.createMonte({
       lote_id: monte.lote_id,
       peso_atual_kg: pesoMovido,
       barras_atuais: barrasMovidas,
@@ -287,7 +295,7 @@ export async function moverMonteParaSetor(
       created_by: ctx.userId,
     })
 
-    await repo.createEvento({
+    await monteRepo.createEvento({
       monte_id: paiAtualizado.id,
       tipo: TIPOS_EVENTO_MONTE.MOVIDO_PARA_SETOR,
       destinatario: `Parcial → ${destinatarioParcial}`,
@@ -295,7 +303,7 @@ export async function moverMonteParaSetor(
       created_by: ctx.userId,
     })
 
-    await repo.createEvento({
+    await monteRepo.createEvento({
       monte_id: filho.id,
       tipo: TIPOS_EVENTO_MONTE.MOVIDO_PARA_SETOR,
       destinatario: destinatarioParcial,
@@ -323,17 +331,19 @@ export type LinhaHistoricoMonte = {
 export async function listarHistoricoMonte(
   ctx: ContextoMonte,
   monteId: string,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository,
+  destinoRepo?: DestinoSaidaRepository
 ): Promise<LinhaHistoricoMonte[]> {
   assertAdmin(ctx.role)
-  const monte = await repo.findById(monteId)
+  const monteRepo = requireRepo(repo)
+  const monte = await monteRepo.findById(monteId)
   if (!monte) throw AppError.notFound('Monte')
 
-  const destinos = await getDestinoSaidaRepository().findAll(true)
+  const destinos = await requireRepo(destinoRepo).findAll(true)
   const destinosPorId = new Map(destinos.map((d) => [d.id, d.nome]))
 
-  const eventos = await repo.listEventosByMonteId(monteId)
-  const transacoes = await repo.listTransacoesByMonteId(monteId)
+  const eventos = await monteRepo.listEventosByMonteId(monteId)
+  const transacoes = await monteRepo.listTransacoesByMonteId(monteId)
 
   const linhas: LinhaHistoricoMonte[] = []
 
@@ -365,11 +375,13 @@ export async function listarHistoricoMonte(
 export async function devolverMonteAlmoxarifado(
   ctx: ContextoMonte,
   input: DevolverMonteAlmoxarifadoInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository,
+  setorRepo?: SetorRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await repo.findById(input.monte_id)
+    const monteRepo = requireRepo(repo)
+    const monte = await monteRepo.findById(input.monte_id)
     if (!monte) throw AppError.notFound('Monte')
     if (monteEstaConsumido(monte)) {
       throw AppError.validation('Monte consumido não pode ser movido.')
@@ -381,16 +393,16 @@ export async function devolverMonteAlmoxarifado(
 
     const agora = new Date().toISOString()
     const setorNome = monte.setor_id
-      ? (await getSetorRepository().findById(monte.setor_id))?.nome ?? 'Setor'
+      ? (await requireRepo(setorRepo).findById(monte.setor_id))?.nome ?? 'Setor'
       : 'Setor'
 
-    const atualizado = await repo.update(input.monte_id, input.updated_at, {
+    const atualizado = await monteRepo.update(input.monte_id, input.updated_at, {
       localizacao: 'almoxarifado',
       setor_id: null,
       movido_setor_em: null,
     })
 
-    await repo.createEvento({
+    await monteRepo.createEvento({
       monte_id: monte.id,
       tipo: TIPOS_EVENTO_MONTE.DEVOLVIDO_ALMOXARIFADO,
       destinatario: setorNome,
@@ -408,14 +420,15 @@ export async function devolverMonteAlmoxarifado(
 export async function trocarPosicaoMonte(
   ctx: ContextoMonte,
   input: TrocarPosicaoMonteInput,
-  repo: MonteRepository = getMonteRepository()
+  repo?: MonteRepository
 ): Promise<Monte> {
   try {
     assertAdmin(ctx.role)
-    const monte = await repo.findById(input.monte_id)
+    const monteRepo = requireRepo(repo)
+    const monte = await monteRepo.findById(input.monte_id)
     if (!monte) throw AppError.notFound('Monte')
 
-    const limites = await repo.findLoteLimitesByMonteId(input.monte_id)
+    const limites = await monteRepo.findLoteLimitesByMonteId(input.monte_id)
     if (!limites) throw AppError.notFound('Lote')
 
     if (
@@ -431,7 +444,7 @@ export async function trocarPosicaoMonte(
       return monte
     }
 
-    return repo.trocarPosicoes(
+    return monteRepo.trocarPosicoes(
       input.monte_id,
       input.updated_at,
       input.posicao_x,

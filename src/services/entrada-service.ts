@@ -1,5 +1,4 @@
-import { filtrarCelulasPreenchidas, somarCelulasEntrada } from '@/lib/entrada/validar-grade-entrada'
-import { getEntradaRepository } from '@/lib/data-source/entrada-repositories'
+﻿import { filtrarCelulasPreenchidas, somarCelulasEntrada } from '@/lib/entrada/validar-grade-entrada'
 import { AppError } from '@/lib/errors/app-error'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import type { CriarEntradaResult, EntradaRepository } from '@/repositories/entrada-repository'
@@ -8,6 +7,11 @@ import type { CriarEntradaInput } from '@/validations/entrada/entrada-schema'
 type ContextoEntrada = {
   userId: string
   role: UsuarioRole
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
 }
 
 function assertAdmin(role: UsuarioRole): void {
@@ -24,26 +28,25 @@ export type ResultadoCriarEntrada = CriarEntradaResult & {
 export async function criarEntrada(
   ctx: ContextoEntrada,
   input: CriarEntradaInput,
-  repo: EntradaRepository = getEntradaRepository()
+  repo?: EntradaRepository
 ): Promise<ResultadoCriarEntrada> {
   assertAdmin(ctx.role)
+  const entradaRepo = requireRepo(repo)
 
-  const liga = await repo.findLigaById(input.liga_id)
+  const liga = await entradaRepo.findLigaById(input.liga_id)
   if (!liga || !liga.is_active) {
     throw AppError.validation('Liga não encontrada ou inativa.')
   }
 
-  const existente = await repo.findLoteByNumero(input.liga_id, input.numero_lote)
+  const existente = await entradaRepo.findLoteByNumero(input.liga_id, input.numero_lote)
   if (existente) {
-    throw AppError.validation(
-      `Já existe o lote "${input.numero_lote.trim()}" nesta liga.`
-    )
+    throw AppError.validation(`Já existe o lote "${input.numero_lote.trim()}" nesta liga.`)
   }
 
   const celulasPreenchidas = filtrarCelulasPreenchidas(input.celulas)
   const soma = somarCelulasEntrada(celulasPreenchidas)
 
-  const resultado = await repo.createLoteComMontes(
+  const resultado = await entradaRepo.createLoteComMontes(
     {
       liga_id: input.liga_id,
       numero_lote: input.numero_lote.trim(),

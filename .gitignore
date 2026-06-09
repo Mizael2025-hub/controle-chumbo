@@ -36,6 +36,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug-*.log
+.cursor/debug-*.log
+.cursor/types-mcp.json
+
+# Rotas de debug temporárias
+src/app/api/debug-log/
 
 # TypeScript
 *.tsbuildinfo

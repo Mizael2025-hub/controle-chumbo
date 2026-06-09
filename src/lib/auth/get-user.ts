@@ -32,11 +32,26 @@ export async function getAuthenticatedUser(): Promise<AuthUser> {
     redirect('/login')
   }
 
+  const { data: perfil, error: erroPerfil } = await supabase
+    .from('usuarios')
+    .select('nome, email, role, is_active')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (erroPerfil) {
+    console.error('[getAuthenticatedUser.perfil]', erroPerfil)
+  }
+
+  const role =
+    perfil?.is_active === false
+      ? 'operador'
+      : (perfil?.role as AuthUser['role'] | undefined) ?? 'operador'
+
   return {
     id: user.id,
-    email: user.email ?? '',
-    nome: user.email ?? 'Usuário',
-    role: 'operador',
+    email: perfil?.email ?? user.email ?? '',
+    nome: perfil?.nome ?? user.email ?? 'Usuário',
+    role,
   }
 }
 

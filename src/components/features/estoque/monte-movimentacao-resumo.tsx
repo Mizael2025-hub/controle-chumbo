@@ -20,14 +20,13 @@ import type { Monte } from '@/repositories/estoque-repository'
 type Props = {
   monte: Monte
   numeroLote: string
-  setoresPorId: Record<string, string>
   ctx: { userId: string; role: UsuarioRole }
   onAtualizado: () => void
 }
 
 const DESTAQUE_CLASSES = {
   setor: 'bg-amber-500/10 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-100',
-  consumido: 'bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600',
+  consumido: 'bg-amber-500/10 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-100',
   parcial: 'bg-violet-500/10 border-violet-300 dark:border-violet-800',
   info: 'bg-apple-blue/10 border-apple-blue/30',
 }
@@ -35,13 +34,12 @@ const DESTAQUE_CLASSES = {
 export function MonteMovimentacaoResumo({
   monte,
   numeroLote,
-  setoresPorId,
   ctx,
   onAtualizado,
 }: Props) {
   const queryClient = useQueryClient()
   const [historicoAberto, setHistoricoAberto] = useState(false)
-  const resumo = montarResumoMonte(monte, setoresPorId)
+  const resumo = montarResumoMonte(monte)
 
   const { data: linhas = [], isLoading } = useQuery({
     queryKey: ['monte', 'historico', monte.id],
@@ -93,8 +91,10 @@ export function MonteMovimentacaoResumo({
         className={`rounded-ios-card border p-3 text-sm ${DESTAQUE_CLASSES[resumo.destaque]}`}
       >
         <h3 className="font-semibold">{resumo.titulo}</h3>
-        <p className="mt-1 text-zinc-600 dark:text-zinc-300">{resumo.descricao}</p>
-        {ultima && !isLoading && (
+        {resumo.descricao && (
+          <p className="mt-1 text-zinc-600 dark:text-zinc-300">{resumo.descricao}</p>
+        )}
+        {resumo.descricao && ultima && !isLoading && (
           <p className="mt-2 text-xs text-zinc-500">
             Último registro: <span className="font-medium text-zinc-700 dark:text-zinc-200">{ultima.rotulo}</span>
             {' — '}

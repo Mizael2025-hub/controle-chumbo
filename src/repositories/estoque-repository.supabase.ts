@@ -1,12 +1,25 @@
-import { AppError } from '@/lib/errors/app-error'
+import { createServerSupabase } from '@/lib/supabase/server'
+import { throwIfSupabaseError } from '@/lib/supabase/repository-utils'
 import type { EstoqueRepository } from '@/repositories/estoque-repository'
-
-function naoImplementado(): never {
-  throw AppError.validation('Estoque: implementação Supabase pendente (Fase D).')
-}
 
 export const estoqueRepositorySupabase: EstoqueRepository = {
   async fetchDadosBrutos() {
-    return naoImplementado()
+    const supabase = await createServerSupabase()
+
+    const [ligasRes, lotesRes, montesRes] = await Promise.all([
+      supabase.from('ligas').select('*').eq('is_active', true).order('nome'),
+      supabase.from('lotes').select('*').order('numero_lote'),
+      supabase.from('montes').select('*'),
+    ])
+
+    throwIfSupabaseError(ligasRes.error, 'Ligas')
+    throwIfSupabaseError(lotesRes.error, 'Lotes')
+    throwIfSupabaseError(montesRes.error, 'Montes')
+
+    return {
+      ligas: ligasRes.data ?? [],
+      lotes: lotesRes.data ?? [],
+      montes: montesRes.data ?? [],
+    }
   },
 }

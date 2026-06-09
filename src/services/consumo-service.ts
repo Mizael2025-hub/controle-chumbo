@@ -1,26 +1,38 @@
-import { alocarBarrasConsumo } from '@/lib/consumo/alocar-barras'
-import {
-  getMaquinaRepository,
-  getOperadorRepository,
-  getSetorRepository,
-  getTurnoRepository,
-} from '@/lib/data-source/cadastro-repositories'
-import { getConsumoRepository } from '@/lib/data-source/consumo-repositories'
-import { getEstoqueRepository } from '@/lib/data-source/estoque-repositories'
+﻿import { alocarBarrasConsumo } from '@/lib/consumo/alocar-barras'
 import { AppError } from '@/lib/errors/app-error'
 import { STATUS_MONTE } from '@/lib/types/status-monte'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
+import type {
+  MaquinaRepository,
+  OperadorRepository,
+  SetorRepository,
+  TurnoRepository,
+} from '@/repositories/cadastro-repository'
 import type {
   ApontamentoConsumo,
   ConsumoRepository,
   CriarConsumoResult,
   LoteConsumoOpcao,
 } from '@/repositories/consumo-repository'
+import type { EstoqueRepository } from '@/repositories/estoque-repository'
 import type { CriarConsumoInput, ListarLotesConsumoInput } from '@/validations/consumo/consumo-schema'
 
 type ContextoConsumo = {
   userId: string
   role: UsuarioRole
+}
+
+export type ConsumoServiceDeps = {
+  setorRepo: SetorRepository
+  maquinaRepo: MaquinaRepository
+  operadorRepo: OperadorRepository
+  turnoRepo: TurnoRepository
+  estoqueRepo: EstoqueRepository
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
 }
 
 function assertPodeConsumir(role: UsuarioRole): void {
@@ -32,42 +44,45 @@ function assertPodeConsumir(role: UsuarioRole): void {
 export async function listarLotesConsumoSetor(
   ctx: ContextoConsumo,
   input: ListarLotesConsumoInput,
-  repo: ConsumoRepository = getConsumoRepository()
+  repo?: ConsumoRepository
 ): Promise<LoteConsumoOpcao[]> {
   assertPodeConsumir(ctx.role)
-  return repo.listarLotesComSaldoNoSetor(input.setor_id, input.liga_id)
+  return requireRepo(repo).listarLotesComSaldoNoSetor(input.setor_id, input.liga_id)
 }
 
 export async function criarApontamentoConsumo(
   ctx: ContextoConsumo,
   input: CriarConsumoInput,
-  repo: ConsumoRepository = getConsumoRepository()
+  repo?: ConsumoRepository,
+  deps?: ConsumoServiceDeps
 ): Promise<CriarConsumoResult> {
   try {
     assertPodeConsumir(ctx.role)
+    const consumoRepo = requireRepo(repo)
+    const { setorRepo, maquinaRepo, operadorRepo, turnoRepo, estoqueRepo } = requireRepo(deps)
 
-    const setor = await getSetorRepository().findById(input.setor_id)
+    const setor = await setorRepo.findById(input.setor_id)
     if (!setor || !setor.is_active) throw AppError.validation('Setor inválido.')
 
-    const maquina = await getMaquinaRepository().findById(input.maquina_id)
+    const maquina = await maquinaRepo.findById(input.maquina_id)
     if (!maquina || !maquina.is_active) throw AppError.validation('Máquina inválida.')
     if (maquina.setor_id !== input.setor_id) {
       throw AppError.validation('Máquina não pertence ao setor selecionado.')
     }
 
-    const operador = await getOperadorRepository().findById(input.operador_id)
+    const operador = await operadorRepo.findById(input.operador_id)
     if (!operador || !operador.is_active) throw AppError.validation('Operador inválido.')
 
-    const turno = await getTurnoRepository().findById(input.turno_id)
+    const turno = await turnoRepo.findById(input.turno_id)
     if (!turno || !turno.is_active) throw AppError.validation('Turno inválido.')
 
-    const { ligas, lotes } = await getEstoqueRepository().fetchDadosBrutos()
+    const { ligas, lotes } = await estoqueRepo.fetchDadosBrutos()
     const liga = ligas.find((l) => l.id === input.liga_id)
     if (!liga) throw AppError.validation('Liga inválida.')
     const lote = lotes.find((l) => l.id === input.lote_id && l.liga_id === input.liga_id)
     if (!lote) throw AppError.validation('Lote inválido para esta liga.')
 
-    let montesOrdenados = await repo.listarMontesElegiveisConsumo(
+    let montesOrdenados = await consumoRepo.listarMontesElegiveisConsumo(
       input.setor_id,
       input.liga_id,
       input.lote_id
@@ -97,7 +112,7 @@ export async function criarApontamentoConsumo(
       }
     })
 
-    return repo.criarApontamento({
+    return consumoRepo.criarApontamento({
       apontamento: {
         data_consumo: input.data_consumo,
         liga_id: input.liga_id,

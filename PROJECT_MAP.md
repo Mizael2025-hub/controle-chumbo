@@ -6,10 +6,10 @@
 
 ## Informações do Projeto
 
-- **Versão atual:** 0.11.1
-- **Última atualização deste mapa:** 2026-06-05 (UI/UX — modal-actions, InicioLink, navegação padronizada)
-- **DATA_SOURCE atual:** local
-- **Stack:** Next.js 16 + Dexie (local) → Supabase + Tailwind v4 + Design System iOS
+- **Versão atual:** 0.14.0
+- **Última atualização deste mapa:** 2026-06-09 (Auditoria Supabase + CI/CD GitHub/Vercel)
+- **DATA_SOURCE atual:** supabase (produção remota `ykuxfwxzizhrrgdmkvbk`)
+- **Stack:** Next.js 16 + Dexie (local) | Supabase (produção) + Tailwind v4 + Design System iOS
 
 ---
 
@@ -19,9 +19,9 @@
 |--------|--------|------------|
 | Documentação Fase A | ✅ Concluído | `docs/FASE_A_CHECKLIST.md` |
 | Scaffold Next.js | ✅ Concluído | Next 16, deps, tokens iOS, PWA |
-| Infra (factory, auth, errors, date-time) | ✅ Concluído | Mock auth, ActionResponse, Supabase stubs |
+| Infra (factory, auth, errors, date-time) | ✅ Concluído | Factory local/server split; ActionResponse |
 | Offline/PWA | ✅ Concluído | Dexie PT-BR, outbox, LoginGate, HeaderSyncStatus |
-| Autenticação | 🔄 Parcial | Mock local; login real na Fase D |
+| Autenticação | ✅ Concluído | Mock local; `/login` + Supabase Auth quando `DATA_SOURCE=supabase` |
 | Cadastros base | ✅ Concluído | 7 entidades; `/configuracoes/cadastros` |
 | Estoque (grade) | ✅ Concluído | Liga → Lotes → grade; saldos derivados; leitura operador+admin |
 | Operações monte | ✅ Concluído | reserva, baixa, mover, devolver, DnD (admin) |
@@ -31,7 +31,7 @@
 | Consumo | ✅ Concluído | `/consumo` formulário + alocação automática |
 | Relatórios | ✅ Concluído | `/relatorios` 4 abas, filtros cascata URL+store, resumo kg/barras, drill-down, CSV admin |
 | Configurações / Admin | ✅ Parcial | cadastros + reset operacional + limpar dispositivo |
-| Supabase produção | ⬜ Não iniciado | Fase D |
+| Supabase produção | ✅ Ativo | Projeto `controle_chumbo` sa-east-1; RLS MVP; admin seedado |
 
 **Legenda:** ✅ Concluído | 🔄 Em andamento | ⚠️ Com pendências | ⬜ Não iniciado
 
@@ -46,8 +46,8 @@
 | `/saida` | ✅ | Redirect → `/estoque` |
 | `/estoque/contagem` | ✅ | Auditoria física; rascunho `contagem_estoque_linha` |
 | `/consumo` | ✅ | Formulário consumo setor (operador + admin) |
-| `/api/sync` | ✅ | Stub — despacho por action nas tarefas de domínio |
-| `/login` | ⬜ | LoginGate já no layout raiz |
+| `/api/sync` | ✅ | UPSERT_ROW / DELETE_ROW via admin client (LWW) |
+| `/login` | ✅ | Email/senha Supabase; middleware redireciona se não autenticado |
 | `/configuracoes/cadastros` | ✅ | Hub + 7 sub-rotas CRUD |
 | `/configuracoes/cadastros/ligas` | ✅ | Cor de liga (chave_cor) |
 | `/configuracoes/cadastros/setores` | ✅ | slug auto (nome), tipo producao/saida_direta |
@@ -84,15 +84,24 @@
 | `login-gate.tsx` | Bloqueia abertura sem internet |
 | `header-sync-status.tsx` | Online / Sincronizando / Offline / Erro |
 | `offline-sync-provider.tsx` | Sync a cada 30s + eventos rede |
-| `app-providers.tsx` | LoginGate + QueryProvider + Sync + AppHeader |
+| `app-providers.tsx` | LoginGate + QueryProvider + Sync + AppShellClient |
 
 ### Layout / navegação
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `app-header.tsx` | Cabeçalho global sticky |
-| `inicio-link.tsx` | Link "Início" padronizado (`href="/"`, `data-testid="link-inicio"`) |
-| `globals.css` `.modal-actions` | Padding inferior nos rodapés de ação dos modais |
+| `app-shell-client.tsx` | Shell responsivo: `app-main-scroll` com rolagem limitada acima da dock |
+| `app-sidebar.tsx` | Barra lateral teal fixa (desktop): Início, Estoque, +, Relatório, Config |
+| `app-tab-bar.tsx` | Dock pílula flutuante em `#app-dock-root` (fora do overflow-hidden) |
+| `nav-add-menu.tsx` | Menu "+" via portal; z-index `--z-mobile-modal` / `--z-mobile-modal-nested` |
+| `nav-config.ts` | Fonte única de rotas, ícones e regras de visibilidade por role |
+| `app-header.tsx` | Cabeçalho sticky mobile com link **Início** (`lg:hidden`) |
+| `modal-overlay.tsx` | Portal `fixed` no `body`; cascata z-200/210; scroll lock com contador; backdrop nested mais escuro |
+| `contextual-action-bar.tsx` | Barra de seleção; `z-index: --z-mobile-contextual` (acima da dock) |
+| `inicio-link.tsx` | *(legado — removido das páginas; nav persistente substitui)* |
+| `globals.css` | Tokens `--z-mobile-*`, `--dock-reserva`, `data-dock-visible`, `.mobile-sheet-card`, `.btn-modal-secondary`, `.mobile-page-card` |
+| `layout.tsx` | `data-dock-visible` no `<body>` quando navegação ativa |
+| `RESTORE.md` | Instruções para voltar ao tag `restore/pre-nav-2026-06-05` |
 
 ---
 
@@ -135,10 +144,10 @@
 |--------|---------|-----------|
 | Types | `lib/types/chave-cor-liga.ts`, `setor-tipo.ts` | Enums de domínio |
 | Validations | `validations/cadastros/cadastro-schema.ts` | Zod PT-BR |
-| Repositories | `repositories/cadastro-repository*.ts` | local Dexie + stub Supabase |
+| Repositories | `repositories/cadastro-repository*.ts` | Dexie local + Supabase implementado |
 | Factory | `lib/data-source/cadastro-repositories.ts` | getXxxRepository + client local |
 | Service | `services/cadastro-service.ts` | Regras + admin + seed destinos |
-| Actions | `actions/cadastro-actions.ts` | Server actions (supabase futuro) |
+| Actions | `actions/cadastro-actions.ts` | Server actions via `server-repositories` |
 | Client | `lib/cadastros/cadastro-client.ts` | Dexie no browser (DATA_SOURCE=local) |
 | UI | `components/features/cadastros/*` | Hub + painéis CRUD iOS |
 | Modelos | `modelos-panel.tsx` | Grade: polaridade, placas_por_grade, unicidade nome+polaridade |
@@ -188,6 +197,7 @@
 | Camada | Arquivo | Descrição |
 |--------|---------|-----------|
 | Alocação | `lib/consumo/alocar-barras.ts` | Distribui barras entre montes do setor |
+| Ordenação FIFO | `lib/consumo/ordenar-montes-liberacao.ts` | Consumo automático por `movido_setor_em` |
 | Validations | `validations/consumo/consumo-schema.ts` | Zod criar + listar lotes |
 | Repositories | `repositories/consumo-repository*.ts` | Dexie apontamento + alocações |
 | Factory | `lib/data-source/consumo-repositories.ts` | getConsumoRepository |
@@ -232,7 +242,7 @@
 
 | Arquivo | Status |
 |---------|--------|
-| `auth-actions.ts` | ✅ trocar mock user |
+| `auth-actions.ts` | ✅ login/logout Supabase + mock local |
 | `local-data-actions.ts` | ✅ autorização admin limpeza |
 | `cadastro-actions.ts` | ✅ CRUD 7 entidades cadastro |
 | `estoque-actions.ts` | ✅ listar visão estoque |
@@ -244,12 +254,43 @@
 
 ---
 
+## Supabase (Fase D)
+
+| Camada | Arquivo | Descrição |
+|--------|---------|-----------|
+| Reset | `supabase/scripts/reset_completo_projeto.sql` | DROP SCHEMA public (rodar uma vez no projeto reutilizado) |
+| Migrations | `supabase/migrations/202606020001` … `008` | schema core, cadastros, consumo, usuarios, triggers, RLS MVP, seed destinos |
+| Types | `src/lib/supabase/database.types.ts` | Tipos Postgres (manual; regenerar após deploy) |
+| Admin | `src/lib/supabase/admin.ts` | Client service_role (server-only) |
+| Utils | `src/lib/supabase/repository-utils.ts` | Helpers mapeamento row ↔ domínio |
+| Sync | `src/lib/supabase/sync-handler.ts` | UPSERT_ROW / DELETE_ROW com LWW |
+| Auth | `src/lib/auth/get-user.ts`, `get-user-role.ts` | Lookup role na tabela `usuarios` |
+| Middleware | `src/middleware.ts` | Protege rotas quando `DATA_SOURCE=supabase` |
+| Login | `src/app/login/page.tsx`, `auth-actions.ts` | Formulário email/senha iOS |
+| API | `src/app/api/sync/route.ts` | Despacho outbox offline |
+| Repositories | `src/repositories/*-repository.supabase.ts` | 7 implementações (cadastro, estoque, monte, entrada, saída, consumo, relatório) |
+| Factory client | `src/lib/data-source/*-repositories.ts` | Exports locais (client-safe) |
+| Dispatch | `src/lib/data-source/client-dispatch.ts` | `*-client.ts` → Dexie (local) ou server actions (supabase) |
+| Factory server | `src/lib/data-source/*-repositories.server.ts` | Getters Supabase com `server-only` |
+| Re-export | `src/lib/data-source/server-repositories.ts` | Import central para actions |
+
+**RLS MVP:** qualquer usuário `authenticated` tem acesso total (pool da fábrica). Endurecimento por role (`202606020007_rls_roles.sql`) adiado.
+
+**Deploy manual:** reset SQL → migrations na ordem → criar usuário Auth → `INSERT INTO usuarios` → `.env.local` com keys → `DATA_SOURCE=supabase`.
+
+---
+
 ## Variáveis de Ambiente
 
 ```bash
-DATA_SOURCE=local
-NEXT_PUBLIC_DATA_SOURCE=local   # espelho client — deve ser igual
+DATA_SOURCE=local                    # ou supabase após deploy
+NEXT_PUBLIC_DATA_SOURCE=local        # espelho client — deve ser igual
 NEXT_PUBLIC_APP_TIMEZONE=America/Sao_Paulo
+
+# Supabase (quando DATA_SOURCE=supabase)
+NEXT_PUBLIC_SUPABASE_URL=https://[projeto].supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SECRET_KEY=...              # server-only
 ```
 
 > Sync/outbox no browser só ativa quando ambos = `supabase`.
@@ -266,11 +307,13 @@ NEXT_PUBLIC_APP_TIMEZONE=America/Sao_Paulo
 | 2026-06-02 | LoginGate no layout raiz | Internet obrigatória na abertura |
 | 2026-06-02 | `cadastroClient` no browser | Dexie/IndexedDB só no client em modo local |
 | 2026-06-02 | Seed destinos na primeira listagem | ENTREVISTA_PROJETO.md §3 |
+| 2026-06-08 | Split `*-repositories.server.ts` | Evitar import de `server-only` em clients offline |
+| 2026-06-08 | Services com `requireRepo()` | Repositório injetado por action (server) ou client (local) |
 | 2026-06-05 | `InicioLink` + `.modal-actions` | Navegação padronizada; respiro nos rodapés de modais |
 | 2026-06-05 | Atalhos Contagem/Liberações removidos do `/estoque` | Acesso via home (`/`) |
 
 ---
 
-## Backlog Fase B
+## Backlog
 
-✅ **Concluída** — próximo marco: **Supabase Fase D**
+✅ **Fase B concluída** | ✅ **Fase D código concluída** — próximo: deploy manual Supabase + RLS por role (opcional)

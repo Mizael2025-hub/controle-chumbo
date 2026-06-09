@@ -4,13 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { PackagePlus } from 'lucide-react'
 import Link from 'next/link'
-import { InicioLink } from '@/components/layout/inicio-link'
 import { useCallback, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { EntradaGradeEditor } from '@/components/features/entrada/entrada-grade-editor'
 import { DataInputPtBr } from '@/components/ui/data-input-pt-br'
 import { EntradaSomaGradePanel } from '@/components/features/entrada/entrada-soma-grade-panel'
+import { modalBtnCancelClass, modalBtnPrimaryClass } from '@/components/ui/modal-ui-classes'
 import { cadastroClient } from '@/lib/cadastros/cadastro-client'
 import { entradaClient } from '@/lib/entrada/entrada-client'
 import {
@@ -184,7 +184,7 @@ export function EntradaView({ userId, role }: Props) {
                 data_chegada_ui: format(agoraLocal(), 'dd/MM/yyyy'),
               })
             }}
-            className="apple-pressable bg-zinc-100 dark:bg-zinc-800 font-medium px-6 py-3 rounded-ios-btn min-h-[44px]"
+            className={`${modalBtnCancelClass} w-full px-6 py-3`}
           >
             Novo lote
           </button>
@@ -202,9 +202,8 @@ export function EntradaView({ userId, role }: Props) {
   const larguraConteudo = passo === 2 ? 'max-w-6xl' : 'max-w-3xl'
 
   return (
-    <div className={`flex flex-1 flex-col p-4 ${larguraConteudo} mx-auto w-full pb-8`}>
+    <div className={`flex flex-1 flex-col p-4 ${larguraConteudo} mx-auto w-full min-w-0 pb-8`}>
       <div className="flex flex-col gap-2 mb-6">
-        <InicioLink />
         <div>
           <h1 className="text-2xl font-semibold">Entrada de lote</h1>
           <p className="text-zinc-500 text-sm mt-1">
@@ -323,7 +322,8 @@ export function EntradaView({ userId, role }: Props) {
             <button
               type="button"
               onClick={() => setPasso(1)}
-              className="flex-1 bg-zinc-100 font-medium px-4 py-3 rounded-ios-btn min-h-[44px]"
+              className={modalBtnCancelClass}
+              data-testid="btn-voltar-entrada"
             >
               Voltar
             </button>
@@ -331,7 +331,7 @@ export function EntradaView({ userId, role }: Props) {
               type="button"
               disabled={criarMutation.isPending}
               onClick={confirmarEntrada}
-              className="flex-1 bg-apple-blue text-white font-medium px-4 py-3 rounded-ios-btn min-h-[44px]"
+              className={modalBtnPrimaryClass}
               data-testid="btn-confirmar-entrada"
             >
               {criarMutation.isPending ? 'Salvando...' : 'Confirmar entrada'}

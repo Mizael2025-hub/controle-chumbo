@@ -1,5 +1,7 @@
 'use server'
 
+import { getEntradaRepository } from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -35,7 +37,7 @@ export async function criarEntradaAction(
       }
     }
     const ctx = await getContexto()
-    const data = await entradaService.criarEntrada(ctx, parsed.data)
+    const data = await entradaService.criarEntrada(ctx, parsed.data, await getEntradaRepository())
     return {
       success: true,
       data,

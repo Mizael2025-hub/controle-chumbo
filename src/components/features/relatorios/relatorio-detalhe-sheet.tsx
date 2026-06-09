@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { relatorioClient } from '@/lib/relatorio/relatorio-client'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import { formatarData, formatarDataHora } from '@/lib/utils/date-time'
@@ -54,14 +55,14 @@ function SheetShell({
   children: ReactNode
 }) {
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      data-testid="relatorio-detalhe-sheet"
-    >
+    <ModalOverlay aberto variante="sheet">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onFechar} />
-      <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-md rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl max-h-[85vh] overflow-y-auto">
+      <div
+        className="modal-card mobile-sheet-card"
+        role="dialog"
+        aria-modal="true"
+        data-testid="relatorio-detalhe-sheet"
+      >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-semibold">{titulo}</h3>
@@ -78,7 +79,7 @@ function SheetShell({
         </div>
         {children}
       </div>
-    </div>
+    </ModalOverlay>
   )
 }
 

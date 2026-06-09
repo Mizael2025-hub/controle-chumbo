@@ -7,10 +7,25 @@ export const contagemLinhaFormSchema = z.object({
     .min(1, 'Informe a data')
     .refine((v) => parseDataPtBr(v) !== null, 'Data inválida. Use dd/MM/yyyy'),
   liga_id: z.string().min(1, 'Selecione a liga'),
-  quantidade_barras: z.coerce
-    .number()
-    .int('Use número inteiro de barras')
-    .positive('Informe ao menos 1 barra'),
+  quantidade_barras: z
+    .union([z.string(), z.number()])
+    .transform((val, ctx) => {
+      const texto = typeof val === 'number' ? String(val) : val.trim()
+      if (texto === '') {
+        ctx.addIssue({ code: 'custom', message: 'Informe a quantidade de barras' })
+        return z.NEVER
+      }
+      const numero = Number.parseInt(texto, 10)
+      if (!Number.isFinite(numero) || !Number.isInteger(numero)) {
+        ctx.addIssue({ code: 'custom', message: 'Use número inteiro de barras' })
+        return z.NEVER
+      }
+      if (numero <= 0) {
+        ctx.addIssue({ code: 'custom', message: 'Informe ao menos 1 barra' })
+        return z.NEVER
+      }
+      return numero
+    }),
   numero_lote: z.string().max(80).optional().or(z.literal('')),
 })
 

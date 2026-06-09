@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { monteClient } from '@/lib/monte/monte-client'
 import { monteTemReservaAtiva } from '@/lib/estoque/calcular-saldos'
 import { STATUS_MONTE } from '@/lib/types/status-monte'
@@ -143,7 +144,7 @@ export function MonteAcoesModais({
         {reservado && (
           <button
             type="button"
-            className="apple-pressable bg-zinc-200 dark:bg-zinc-800 font-medium px-4 py-3 rounded-ios-btn min-h-[44px]"
+            className="btn-modal-secondary w-full"
             onClick={() => cancelarReserva.mutate()}
             disabled={cancelarReserva.isPending}
             data-testid="btn-cancelar-reserva"
@@ -167,7 +168,7 @@ export function MonteAcoesModais({
         {!consumido && noAlmoxarifado && (
           <button
             type="button"
-            className="apple-pressable bg-zinc-200 dark:bg-zinc-800 font-medium px-4 py-3 rounded-ios-btn min-h-[44px]"
+            className="btn-modal-secondary w-full"
             onClick={() => setModal('mover')}
             data-testid="btn-mover-setor"
           >
@@ -286,12 +287,12 @@ function ModalShell({
   onFechar: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center">
+    <ModalOverlay aberto variante="sheet" nivel="nested">
       <button type="button" className="absolute inset-0" aria-label="Fechar" onClick={onFechar} />
-      <div className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-sm rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe shadow-xl">
+      <div className="modal-card mobile-sheet-card max-w-sm">
         <h3 className="text-lg font-semibold mb-4">{titulo}</h3>
         <div className="flex flex-col gap-2">{children}</div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

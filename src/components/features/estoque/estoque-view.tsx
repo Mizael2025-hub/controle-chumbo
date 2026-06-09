@@ -3,7 +3,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, ChevronRight, Package } from 'lucide-react'
 import Link from 'next/link'
-import { InicioLink } from '@/components/layout/inicio-link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { EstoqueGrade } from '@/components/features/estoque/estoque-grade'
@@ -24,6 +23,7 @@ import {
 } from '@/lib/types/chave-cor-liga'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import { formatarData } from '@/lib/utils/date-time'
+import { formatarKg } from '@/lib/utils/format-number'
 import type { Monte } from '@/repositories/estoque-repository'
 import type { LoteEstoque } from '@/services/estoque-service'
 
@@ -55,7 +55,6 @@ export function EstoqueView({ userId, role }: Props) {
   })
 
   const ligas = useMemo(() => data?.ligas ?? [], [data])
-  const setoresPorId = data?.setores_por_id ?? {}
 
   const { data: setoresCadastro = [] } = useQuery({
     queryKey: ['cadastros', 'setores'],
@@ -194,10 +193,9 @@ export function EstoqueView({ userId, role }: Props) {
 
   return (
     <div
-      className={`flex flex-1 flex-col p-4 max-w-5xl mx-auto w-full ${temSelecao ? 'pb-28' : 'pb-8'}`}
+      className={`flex flex-1 flex-col p-4 max-w-5xl mx-auto w-full ${temSelecao ? 'max-lg:pb-contextual-bar lg:pb-28' : ''}`}
     >
       <div className="flex flex-col gap-2 mb-4">
-        <InicioLink />
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <Package className="h-6 w-6 text-apple-blue" strokeWidth={1.5} />
@@ -212,7 +210,7 @@ export function EstoqueView({ userId, role }: Props) {
       </div>
 
       {ligas.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-ios-card text-center text-zinc-500">
+        <div className="mobile-page-card p-6 rounded-ios-card text-center text-zinc-500">
           <p>Nenhuma liga ativa cadastrada.</p>
           {isAdmin && (
             <Link href="/configuracoes/cadastros/ligas" className="text-apple-blue text-sm mt-2 inline-block">
@@ -299,7 +297,8 @@ export function EstoqueView({ userId, role }: Props) {
                           <div className="flex-1 min-w-0">
                             <span className="font-semibold block truncate">Lote {lote.numero_lote}</span>
                             <span className="text-xs text-zinc-500">
-                              Chegada {formatarData(lote.data_chegada)} · {lote.montes.length} monte(s)
+                              Chegada {formatarData(lote.data_chegada)} · {formatarKg(lote.peso_inicial_kg)} ·{' '}
+                              {lote.montes.length} monte(s)
                             </span>
                           </div>
                         </button>
@@ -367,7 +366,6 @@ export function EstoqueView({ userId, role }: Props) {
           monte={monteSelecionado.monte}
           numeroLote={monteSelecionado.lote.numero_lote}
           nomeLiga={monteSelecionado.nomeLiga}
-          setoresPorId={setoresPorId}
           role={role}
           userId={userId}
           setores={setoresLista}

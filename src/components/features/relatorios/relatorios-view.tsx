@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileBarChart, SlidersHorizontal } from 'lucide-react'
-import { InicioLink } from '@/components/layout/inicio-link'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { RelatorioDetalheSheet } from '@/components/features/relatorios/relatorio-detalhe-sheet'
@@ -128,7 +127,6 @@ export function RelatoriosView({ ctx }: Props) {
   return (
     <div className="flex flex-1 flex-col p-4 max-w-5xl mx-auto w-full pb-8">
       <div className="flex flex-col gap-2 mb-4">
-        <InicioLink />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
@@ -175,7 +173,7 @@ export function RelatoriosView({ ctx }: Props) {
             type="button"
             onClick={() => aplicarFiltros({ aba: item })}
             className={`flex-1 min-w-[88px] min-h-[44px] rounded-ios-btn text-sm font-medium whitespace-nowrap px-2 ${
-              aba === item ? 'bg-white dark:bg-zinc-800 shadow-sm' : ''
+              aba === item ? 'mobile-tab-ativa' : 'mobile-tab-inativa'
             }`}
             data-testid={`aba-relatorio-${item}`}
           >
@@ -208,7 +206,7 @@ export function RelatoriosView({ ctx }: Props) {
                     <button
                       type="button"
                       onClick={() => setDetalheEntradaId(linha.id)}
-                      className="apple-pressable w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-ios-card p-4 min-h-[44px]"
+                      className="apple-pressable w-full text-left mobile-page-card rounded-ios-card p-4 min-h-[44px]"
                       data-testid={`relatorio-entrada-${linha.id}`}
                     >
                       <span className="font-medium block">
@@ -258,7 +256,7 @@ export function RelatoriosView({ ctx }: Props) {
                     <button
                       type="button"
                       onClick={() => setDetalheEvento(linha)}
-                      className="apple-pressable w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-ios-card p-4 min-h-[44px]"
+                      className="apple-pressable w-full text-left mobile-page-card rounded-ios-card p-4 min-h-[44px]"
                       data-testid={`relatorio-evento-${linha.id}`}
                     >
                       <span className="font-medium block">{linha.tipo_rotulo}</span>
@@ -285,7 +283,7 @@ export function RelatoriosView({ ctx }: Props) {
                     <button
                       type="button"
                       onClick={() => setDetalheConsumoId(linha.id)}
-                      className="apple-pressable w-full text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-ios-card p-4 min-h-[44px]"
+                      className="apple-pressable w-full text-left mobile-page-card rounded-ios-card p-4 min-h-[44px]"
                       data-testid={`relatorio-consumo-${linha.id}`}
                     >
                       <span className="font-medium block">

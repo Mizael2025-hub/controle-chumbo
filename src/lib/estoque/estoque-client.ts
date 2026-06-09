@@ -1,6 +1,8 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import { listarVisaoEstoqueAction } from '@/actions/estoque-actions'
+import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
+import { dispatchLocalOrAction } from '@/lib/data-source/client-dispatch'
 import { estoqueRepositoryLocalClient } from '@/lib/data-source/estoque-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import type { ActionResponse } from '@/lib/types/action-response'
@@ -27,17 +29,23 @@ function wrapError(error: unknown): ActionResponse {
 }
 
 export const estoqueClient = {
-  listarVisaoEstoque: async (ctx: ContextoClient): Promise<ActionResponse<estoqueService.VisaoEstoque>> => {
-    if (!isLocalDataSourceClient()) {
-      return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-    }
-
-    try {
-      const data = await estoqueService.listarVisaoEstoque(ctx, estoqueRepositoryLocalClient)
-      return wrapSuccess(data)
-    } catch (error) {
-      console.error('[estoqueClient.listarVisaoEstoque]', error)
-      return wrapError(error) as ActionResponse<estoqueService.VisaoEstoque>
-    }
-  },
+  listarVisaoEstoque: async (
+    ctx: ContextoClient
+  ): Promise<ActionResponse<estoqueService.VisaoEstoque>> =>
+    dispatchLocalOrAction(
+      async () => {
+        try {
+          const data = await estoqueService.listarVisaoEstoque(
+            ctx,
+            estoqueRepositoryLocalClient,
+            cadastroRepositoriesLocal.setores
+          )
+          return wrapSuccess(data)
+        } catch (error) {
+          console.error('[estoqueClient.listarVisaoEstoque]', error)
+          return wrapError(error) as ActionResponse<estoqueService.VisaoEstoque>
+        }
+      },
+      () => listarVisaoEstoqueAction()
+    ),
 }

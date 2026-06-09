@@ -1,5 +1,13 @@
 'use server'
 
+import {
+  getDestinoSaidaRepository,
+  getEstoqueRepository,
+  getLigaRepository,
+  getRelatorioRepository,
+  getSetorRepository,
+} from '@/lib/data-source/server-repositories'
+
 import { getAuthenticatedUser } from '@/lib/auth/get-user'
 import { getUserRole } from '@/lib/auth/get-user-role'
 import { AppError } from '@/lib/errors/app-error'
@@ -40,7 +48,12 @@ export async function consultarRelatorioAction(
       }
     }
     const ctx = await getContexto()
-    const data = await relatorioService.consultarRelatorio(ctx, parsed.data)
+    const data = await relatorioService.consultarRelatorio(ctx, parsed.data, await getRelatorioRepository(), {
+      ligaRepo: await getLigaRepository(),
+      destinoRepo: await getDestinoSaidaRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+      setorRepo: await getSetorRepository(),
+    })
     return { success: true, data, message: 'Relatório carregado.' }
   } catch (error) {
     return handleError(error)
@@ -60,7 +73,12 @@ export async function exportarCsvRelatorioAction(
       }
     }
     const ctx = await getContexto()
-    const data = await relatorioService.gerarCsvRelatorio(ctx, parsed.data)
+    const data = await relatorioService.gerarCsvRelatorio(ctx, parsed.data, await getRelatorioRepository(), {
+      ligaRepo: await getLigaRepository(),
+      destinoRepo: await getDestinoSaidaRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+      setorRepo: await getSetorRepository(),
+    })
     return { success: true, data, message: 'CSV gerado.' }
   } catch (error) {
     return handleError(error)
@@ -79,7 +97,12 @@ export async function buscarEntradaDetalheAction(
       return { success: false, message: 'Identificador inválido.' }
     }
     const ctx = await getContexto()
-    const data = await relatorioService.buscarEntradaDetalhe(ctx, parsed.data.lote_id)
+    const data = await relatorioService.buscarEntradaDetalhe(ctx, parsed.data.lote_id, await getRelatorioRepository(), {
+      ligaRepo: await getLigaRepository(),
+      destinoRepo: await getDestinoSaidaRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+      setorRepo: await getSetorRepository(),
+    })
     return { success: true, data, message: 'Detalhe carregado.' }
   } catch (error) {
     return handleError(error)
@@ -95,7 +118,12 @@ export async function buscarConsumoDetalheAction(
       return { success: false, message: 'Identificador inválido.' }
     }
     const ctx = await getContexto()
-    const data = await relatorioService.buscarConsumoDetalhe(ctx, parsed.data.apontamento_id)
+    const data = await relatorioService.buscarConsumoDetalhe(ctx, parsed.data.apontamento_id, await getRelatorioRepository(), {
+      ligaRepo: await getLigaRepository(),
+      destinoRepo: await getDestinoSaidaRepository(),
+      estoqueRepo: await getEstoqueRepository(),
+      setorRepo: await getSetorRepository(),
+    })
     return { success: true, data, message: 'Detalhe carregado.' }
   } catch (error) {
     return handleError(error)

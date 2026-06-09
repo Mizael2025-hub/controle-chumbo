@@ -1,6 +1,14 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import {
+  buscarConsumoDetalheAction,
+  buscarEntradaDetalheAction,
+  consultarRelatorioAction,
+  exportarCsvRelatorioAction,
+} from '@/actions/relatorio-actions'
+import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
+import { dispatchLocalOrAction } from '@/lib/data-source/client-dispatch'
+import { estoqueRepositoryLocalClient } from '@/lib/data-source/estoque-repositories'
 import { relatorioRepositoryLocalClient } from '@/lib/data-source/relatorio-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import type { ActionResponse } from '@/lib/types/action-response'
@@ -18,13 +26,10 @@ type ContextoClient = {
   role: UsuarioRole
 }
 
-async function executar<T>(
+async function executarLocal<T>(
   operacao: () => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
   try {
     const data = await operacao()
     return { success: true, data, message }
@@ -37,30 +42,52 @@ async function executar<T>(
 }
 
 const repo = () => relatorioRepositoryLocalClient
+const deps = () => ({
+  ligaRepo: cadastroRepositoriesLocal.ligas,
+  destinoRepo: cadastroRepositoriesLocal.destinos_saida,
+  estoqueRepo: estoqueRepositoryLocalClient,
+  setorRepo: cadastroRepositoriesLocal.setores,
+})
 
 export const relatorioClient = {
   consultar: (ctx: ContextoClient, input: RelatorioConsultaInput) =>
-    executar(
-      () => relatorioService.consultarRelatorio(ctx, input, repo()),
-      'Relatório carregado.'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => relatorioService.consultarRelatorio(ctx, input, repo(), deps()),
+          'Relatório carregado.'
+        ),
+      () => consultarRelatorioAction(input)
     ),
 
   exportarCsv: (ctx: ContextoClient, input: RelatorioConsultaInput) =>
-    executar(
-      () => relatorioService.gerarCsvRelatorio(ctx, input, repo()),
-      'CSV gerado.'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => relatorioService.gerarCsvRelatorio(ctx, input, repo(), deps()),
+          'CSV gerado.'
+        ),
+      () => exportarCsvRelatorioAction(input)
     ),
 
   buscarEntradaDetalhe: (ctx: ContextoClient, loteId: string) =>
-    executar(
-      () => relatorioService.buscarEntradaDetalhe(ctx, loteId, repo()),
-      'Detalhe carregado.'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => relatorioService.buscarEntradaDetalhe(ctx, loteId, repo(), deps()),
+          'Detalhe carregado.'
+        ),
+      () => buscarEntradaDetalheAction(loteId)
     ),
 
   buscarConsumoDetalhe: (ctx: ContextoClient, apontamentoId: string) =>
-    executar(
-      () => relatorioService.buscarConsumoDetalhe(ctx, apontamentoId, repo()),
-      'Detalhe carregado.'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => relatorioService.buscarConsumoDetalhe(ctx, apontamentoId, repo(), deps()),
+          'Detalhe carregado.'
+        ),
+      () => buscarConsumoDetalheAction(apontamentoId)
     ),
 }
 

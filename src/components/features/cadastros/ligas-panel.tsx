@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -26,7 +27,7 @@ export function LigasPanel({ userId, role }: Props) {
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Liga | null>(null)
 
-  const { data: ligas = [], isLoading } = useQuery({
+  const { data: ligas = [], isLoading, isError, error } = useQuery({
     queryKey: ['cadastros', 'ligas'],
     queryFn: async () => {
       const res = await cadastroClient.listarLigas(ctx)
@@ -131,6 +132,10 @@ export function LigasPanel({ userId, role }: Props) {
 
       {isLoading ? (
         <p className="text-zinc-500 text-center py-8">Carregando...</p>
+      ) : isError ? (
+        <p className="text-apple-red text-center py-8">
+          Erro ao carregar: {error instanceof Error ? error.message : 'desconhecido'}
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {ligas.map((liga) => (
@@ -189,9 +194,8 @@ export function LigasPanel({ userId, role }: Props) {
         </ul>
       )}
 
-      {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center">
-          <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe">
+      <ModalOverlay aberto={modalAberto}>
+          <div className="modal-card">
             <h2 className="text-xl font-semibold mb-4">
               {editando ? 'Editar liga' : 'Nova liga'}
             </h2>
@@ -238,7 +242,7 @@ export function LigasPanel({ userId, role }: Props) {
                     setModalAberto(false)
                     setEditando(null)
                   }}
-                  className="flex-1 bg-zinc-100 font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+                  className="btn-modal-cancel"
                 >
                   Cancelar
                 </button>
@@ -252,8 +256,7 @@ export function LigasPanel({ userId, role }: Props) {
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </ModalOverlay>
     </div>
   )
 }

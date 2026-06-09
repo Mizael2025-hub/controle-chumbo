@@ -1,6 +1,7 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import { criarEntradaAction } from '@/actions/entrada-actions'
+import { dispatchLocalOrAction } from '@/lib/data-source/client-dispatch'
 import { entradaRepositoryLocalClient } from '@/lib/data-source/entrada-repositories'
 import { AppError } from '@/lib/errors/app-error'
 import type { ActionResponse } from '@/lib/types/action-response'
@@ -14,13 +15,10 @@ type ContextoClient = {
   role: UsuarioRole
 }
 
-async function executar<T>(
+async function executarLocal<T>(
   operacao: () => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
   try {
     const data = await operacao()
     return { success: true, data, message }
@@ -32,12 +30,14 @@ async function executar<T>(
   }
 }
 
-const repo = () => entradaRepositoryLocalClient
-
 export const entradaClient = {
   criar: (ctx: ContextoClient, input: CriarEntradaInput) =>
-    executar(
-      () => entradaService.criarEntrada(ctx, input, repo()),
-      'Lote e grade cadastrados com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => entradaService.criarEntrada(ctx, input, entradaRepositoryLocalClient),
+          'Lote e grade cadastrados com sucesso!'
+        ),
+      () => criarEntradaAction(input)
     ) as Promise<ActionResponse<ResultadoCriarEntrada>>,
 }

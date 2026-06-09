@@ -147,7 +147,7 @@ export function SaidaNovaLiberacao({ ctx }: Props) {
   const temSelecao = linhasSelecionadas.length > 0
 
   return (
-    <div className={`flex flex-col gap-4 ${temSelecao ? 'pb-24' : 'pb-4'}`}>
+    <div className={`flex flex-col gap-4 ${temSelecao ? 'max-lg:pb-contextual-bar' : ''}`}>
       <p className="text-sm text-zinc-500">
         Escolha a liga, expanda o lote e selecione montes na grade para reservar, mover ou liberar.
       </p>

@@ -9,7 +9,9 @@
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "gen:types": "supabase gen types typescript --project-id ykuxfwxzizhrrgdmkvbk -o src/lib/supabase/database.types.ts",
+    "gen:types:local": "node scripts/write-database-types.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -27,6 +29,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.77.0",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "uuid": "^14.0.0",
@@ -46,6 +49,7 @@
     "eslint-config-next": "16.2.7",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
+    "supabase": "^2.105.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"

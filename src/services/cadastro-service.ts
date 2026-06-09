@@ -1,13 +1,4 @@
-import { SEED_DESTINOS_SAIDA } from '@/lib/cadastros/seed-destinos'
-import {
-  getDestinoSaidaRepository,
-  getLigaRepository,
-  getMaquinaRepository,
-  getModeloProdutoRepository,
-  getOperadorRepository,
-  getSetorRepository,
-  getTurnoRepository,
-} from '@/lib/data-source/cadastro-repositories'
+﻿import { SEED_DESTINOS_SAIDA } from '@/lib/cadastros/seed-destinos'
 import { AppError } from '@/lib/errors/app-error'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import { gerarSlug } from '@/lib/utils/slug'
@@ -38,6 +29,11 @@ import type {
 type ContextoCadastro = {
   userId: string
   role: UsuarioRole
+}
+
+function requireRepo<T>(repo: T | undefined): T {
+  if (!repo) throw AppError.validation('Repositório não informado.')
+  return repo
 }
 
 function assertAdmin(role: UsuarioRole): void {
@@ -82,15 +78,16 @@ async function garantirModeloUnico(
 
 export async function seedDestinosSaidaSeVazio(
   userId: string,
-  repo: DestinoSaidaRepository = getDestinoSaidaRepository()
+  repo?: DestinoSaidaRepository
 ): Promise<void> {
   try {
-    const total = await repo.count()
+    const destinoRepo = requireRepo(repo)
+    const total = await destinoRepo.count()
     if (total > 0) return
 
     for (let i = 0; i < SEED_DESTINOS_SAIDA.length; i++) {
       const item = SEED_DESTINOS_SAIDA[i]
-      await repo.create({
+      await destinoRepo.create({
         nome: item.nome,
         slug: item.slug,
         sort_order: i,
@@ -103,120 +100,111 @@ export async function seedDestinosSaidaSeVazio(
   }
 }
 
-export async function listarLigas(
-  ctx: ContextoCadastro,
-  repo: LigaRepository = getLigaRepository()
-) {
+export async function listarLigas(ctx: ContextoCadastro, repo?: LigaRepository) {
   assertAdmin(ctx.role)
-  return repo.findAll(true)
+  return requireRepo(repo).findAll(true)
 }
 
 export async function criarLiga(
   ctx: ContextoCadastro,
   input: CriarLigaInput,
-  repo: LigaRepository = getLigaRepository()
+  repo?: LigaRepository
 ) {
   assertAdmin(ctx.role)
-  return repo.create({ ...input, created_by: ctx.userId })
+  return requireRepo(repo).create({ ...input, created_by: ctx.userId })
 }
 
 export async function atualizarLiga(
   ctx: ContextoCadastro,
   input: AtualizarLigaInput,
-  repo: LigaRepository = getLigaRepository()
+  repo?: LigaRepository
 ) {
   assertAdmin(ctx.role)
+  const ligaRepo = requireRepo(repo)
   const { id, ...data } = input
-  const atualizado = await repo.update(id, data)
+  const atualizado = await ligaRepo.update(id, data)
   if (!atualizado) throw AppError.notFound('Liga')
   return atualizado
 }
 
-export async function excluirLiga(
-  ctx: ContextoCadastro,
-  id: string,
-  repo: LigaRepository = getLigaRepository()
-) {
+export async function excluirLiga(ctx: ContextoCadastro, id: string, repo?: LigaRepository) {
   assertAdmin(ctx.role)
-  const existente = await repo.findById(id)
+  const ligaRepo = requireRepo(repo)
+  const existente = await ligaRepo.findById(id)
   if (!existente) throw AppError.notFound('Liga')
-  await repo.softDelete(id)
+  await ligaRepo.softDelete(id)
 }
 
-export async function listarSetores(
-  ctx: ContextoCadastro,
-  repo: SetorRepository = getSetorRepository()
-) {
+export async function listarSetores(ctx: ContextoCadastro, repo?: SetorRepository) {
   assertAdmin(ctx.role)
-  return repo.findAll(true)
+  return requireRepo(repo).findAll(true)
 }
 
 export async function criarSetor(
   ctx: ContextoCadastro,
   input: CriarSetorInput,
-  repo: SetorRepository = getSetorRepository()
+  repo?: SetorRepository
 ) {
   assertAdmin(ctx.role)
+  const setorRepo = requireRepo(repo)
   const slug = input.slug ?? gerarSlug(input.nome)
   if (!slug) throw AppError.validation('Não foi possível gerar slug a partir do nome.')
-  await garantirSlugUnicoSetor(repo, slug)
-  return repo.create({ ...input, slug, created_by: ctx.userId })
+  await garantirSlugUnicoSetor(setorRepo, slug)
+  return setorRepo.create({ ...input, slug, created_by: ctx.userId })
 }
 
 export async function atualizarSetor(
   ctx: ContextoCadastro,
   input: AtualizarSetorInput,
-  repo: SetorRepository = getSetorRepository()
+  repo?: SetorRepository
 ) {
   assertAdmin(ctx.role)
+  const setorRepo = requireRepo(repo)
   const { id, ...data } = input
-  if (data.slug) await garantirSlugUnicoSetor(repo, data.slug, id)
-  const atualizado = await repo.update(id, data)
+  if (data.slug) await garantirSlugUnicoSetor(setorRepo, data.slug, id)
+  const atualizado = await setorRepo.update(id, data)
   if (!atualizado) throw AppError.notFound('Setor')
   return atualizado
 }
 
-export async function excluirSetor(
-  ctx: ContextoCadastro,
-  id: string,
-  repo: SetorRepository = getSetorRepository()
-) {
+export async function excluirSetor(ctx: ContextoCadastro, id: string, repo?: SetorRepository) {
   assertAdmin(ctx.role)
-  const existente = await repo.findById(id)
+  const setorRepo = requireRepo(repo)
+  const existente = await setorRepo.findById(id)
   if (!existente) throw AppError.notFound('Setor')
-  await repo.softDelete(id)
+  await setorRepo.softDelete(id)
 }
 
-export async function listarDestinos(
-  ctx: ContextoCadastro,
-  repo: DestinoSaidaRepository = getDestinoSaidaRepository()
-) {
+export async function listarDestinos(ctx: ContextoCadastro, repo?: DestinoSaidaRepository) {
   assertAdmin(ctx.role)
-  await seedDestinosSaidaSeVazio(ctx.userId, repo)
-  return repo.findAll(true)
+  const destinoRepo = requireRepo(repo)
+  await seedDestinosSaidaSeVazio(ctx.userId, destinoRepo)
+  return destinoRepo.findAll(true)
 }
 
 export async function criarDestino(
   ctx: ContextoCadastro,
   input: CriarDestinoInput,
-  repo: DestinoSaidaRepository = getDestinoSaidaRepository()
+  repo?: DestinoSaidaRepository
 ) {
   assertAdmin(ctx.role)
+  const destinoRepo = requireRepo(repo)
   const slug = input.slug ?? gerarSlug(input.nome)
   if (!slug) throw AppError.validation('Não foi possível gerar slug a partir do nome.')
-  await garantirSlugUnicoDestino(repo, slug)
-  return repo.create({ ...input, slug, created_by: ctx.userId })
+  await garantirSlugUnicoDestino(destinoRepo, slug)
+  return destinoRepo.create({ ...input, slug, created_by: ctx.userId })
 }
 
 export async function atualizarDestino(
   ctx: ContextoCadastro,
   input: AtualizarDestinoInput,
-  repo: DestinoSaidaRepository = getDestinoSaidaRepository()
+  repo?: DestinoSaidaRepository
 ) {
   assertAdmin(ctx.role)
+  const destinoRepo = requireRepo(repo)
   const { id, ...data } = input
-  if (data.slug) await garantirSlugUnicoDestino(repo, data.slug, id)
-  const atualizado = await repo.update(id, data)
+  if (data.slug) await garantirSlugUnicoDestino(destinoRepo, data.slug, id)
+  const atualizado = await destinoRepo.update(id, data)
   if (!atualizado) throw AppError.notFound('Destino de saída')
   return atualizado
 }
@@ -224,12 +212,13 @@ export async function atualizarDestino(
 export async function excluirDestino(
   ctx: ContextoCadastro,
   id: string,
-  repo: DestinoSaidaRepository = getDestinoSaidaRepository()
+  repo?: DestinoSaidaRepository
 ) {
   assertAdmin(ctx.role)
-  const existente = await repo.findById(id)
+  const destinoRepo = requireRepo(repo)
+  const existente = await destinoRepo.findById(id)
   if (!existente) throw AppError.notFound('Destino de saída')
-  await repo.softDelete(id)
+  await destinoRepo.softDelete(id)
 }
 
 async function cadastroSimplesOps(
@@ -257,101 +246,89 @@ async function cadastroSimplesOps(
   }
 }
 
-export async function listarOperadores(
-  ctx: ContextoCadastro,
-  repo: OperadorRepository = getOperadorRepository()
-) {
-  return cadastroSimplesOps(ctx, repo, 'Operador').then((ops) => ops.listar())
+export async function listarOperadores(ctx: ContextoCadastro, repo?: OperadorRepository) {
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Operador').then((ops) => ops.listar())
 }
 
 export async function criarOperador(
   ctx: ContextoCadastro,
   input: CriarCadastroSimplesInput,
-  repo: OperadorRepository = getOperadorRepository()
+  repo?: OperadorRepository
 ) {
-  return cadastroSimplesOps(ctx, repo, 'Operador').then((ops) => ops.criar(input))
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Operador').then((ops) => ops.criar(input))
 }
 
 export async function atualizarOperador(
   ctx: ContextoCadastro,
   input: AtualizarCadastroSimplesInput,
-  repo: OperadorRepository = getOperadorRepository()
+  repo?: OperadorRepository
 ) {
-  return cadastroSimplesOps(ctx, repo, 'Operador').then((ops) => ops.atualizar(input))
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Operador').then((ops) => ops.atualizar(input))
 }
 
-export async function excluirOperador(
-  ctx: ContextoCadastro,
-  id: string,
-  repo: OperadorRepository = getOperadorRepository()
-) {
-  return cadastroSimplesOps(ctx, repo, 'Operador').then((ops) => ops.excluir(id))
+export async function excluirOperador(ctx: ContextoCadastro, id: string, repo?: OperadorRepository) {
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Operador').then((ops) => ops.excluir(id))
 }
 
-export async function listarTurnos(
-  ctx: ContextoCadastro,
-  repo: TurnoRepository = getTurnoRepository()
-) {
-  return cadastroSimplesOps(ctx, repo, 'Turno').then((ops) => ops.listar())
+export async function listarTurnos(ctx: ContextoCadastro, repo?: TurnoRepository) {
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Turno').then((ops) => ops.listar())
 }
 
 export async function criarTurno(
   ctx: ContextoCadastro,
   input: CriarCadastroSimplesInput,
-  repo: TurnoRepository = getTurnoRepository()
+  repo?: TurnoRepository
 ) {
-  return cadastroSimplesOps(ctx, repo, 'Turno').then((ops) => ops.criar(input))
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Turno').then((ops) => ops.criar(input))
 }
 
 export async function atualizarTurno(
   ctx: ContextoCadastro,
   input: AtualizarCadastroSimplesInput,
-  repo: TurnoRepository = getTurnoRepository()
+  repo?: TurnoRepository
 ) {
-  return cadastroSimplesOps(ctx, repo, 'Turno').then((ops) => ops.atualizar(input))
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Turno').then((ops) => ops.atualizar(input))
 }
 
-export async function excluirTurno(
-  ctx: ContextoCadastro,
-  id: string,
-  repo: TurnoRepository = getTurnoRepository()
-) {
-  return cadastroSimplesOps(ctx, repo, 'Turno').then((ops) => ops.excluir(id))
+export async function excluirTurno(ctx: ContextoCadastro, id: string, repo?: TurnoRepository) {
+  return cadastroSimplesOps(ctx, requireRepo(repo), 'Turno').then((ops) => ops.excluir(id))
 }
 
 export async function listarModelosProduto(
   ctx: ContextoCadastro,
-  repo: ModeloProdutoRepository = getModeloProdutoRepository()
+  repo?: ModeloProdutoRepository
 ) {
   assertAdmin(ctx.role)
-  return repo.findAll(true)
+  return requireRepo(repo).findAll(true)
 }
 
 export async function criarModeloProduto(
   ctx: ContextoCadastro,
   input: CriarModeloProdutoInput,
-  repo: ModeloProdutoRepository = getModeloProdutoRepository()
+  repo?: ModeloProdutoRepository
 ) {
   assertAdmin(ctx.role)
-  await garantirModeloUnico(repo, input.nome, input.polaridade)
-  return repo.create({ ...input, created_by: ctx.userId })
+  const modeloRepo = requireRepo(repo)
+  await garantirModeloUnico(modeloRepo, input.nome, input.polaridade)
+  return modeloRepo.create({ ...input, created_by: ctx.userId })
 }
 
 export async function atualizarModeloProduto(
   ctx: ContextoCadastro,
   input: AtualizarModeloProdutoInput,
-  repo: ModeloProdutoRepository = getModeloProdutoRepository()
+  repo?: ModeloProdutoRepository
 ) {
   assertAdmin(ctx.role)
+  const modeloRepo = requireRepo(repo)
   const { id, ...data } = input
-  const existente = await repo.findById(id)
+  const existente = await modeloRepo.findById(id)
   if (!existente) throw AppError.notFound('Modelo de produto')
 
   const nome = data.nome ?? existente.nome
   const polaridade = data.polaridade ?? existente.polaridade
-  await garantirModeloUnico(repo, nome, polaridade, id)
+  await garantirModeloUnico(modeloRepo, nome, polaridade, id)
 
-  const atualizado = await repo.update(id, data)
+  const atualizado = await modeloRepo.update(id, data)
   if (!atualizado) throw AppError.notFound('Modelo de produto')
   return atualizado
 }
@@ -359,56 +336,57 @@ export async function atualizarModeloProduto(
 export async function excluirModeloProduto(
   ctx: ContextoCadastro,
   id: string,
-  repo: ModeloProdutoRepository = getModeloProdutoRepository()
+  repo?: ModeloProdutoRepository
 ) {
   assertAdmin(ctx.role)
-  const existente = await repo.findById(id)
+  const modeloRepo = requireRepo(repo)
+  const existente = await modeloRepo.findById(id)
   if (!existente) throw AppError.notFound('Modelo de produto')
-  await repo.softDelete(id)
+  await modeloRepo.softDelete(id)
 }
 
-export async function listarMaquinas(
-  ctx: ContextoCadastro,
-  repo: MaquinaRepository = getMaquinaRepository()
-) {
+export async function listarMaquinas(ctx: ContextoCadastro, repo?: MaquinaRepository) {
   assertAdmin(ctx.role)
-  return repo.findAll(true)
+  return requireRepo(repo).findAll(true)
 }
 
 export async function criarMaquina(
   ctx: ContextoCadastro,
   input: CriarMaquinaInput,
-  repo: MaquinaRepository = getMaquinaRepository()
+  repo?: MaquinaRepository,
+  setorRepo?: SetorRepository
 ) {
   assertAdmin(ctx.role)
-  const setor = await getSetorRepository().findById(input.setor_id)
+  const maquinaRepo = requireRepo(repo)
+  const setores = requireRepo(setorRepo)
+  const setor = await setores.findById(input.setor_id)
   if (!setor || !setor.is_active) throw AppError.validation('Setor inválido ou inativo.')
-  return repo.create({ ...input, created_by: ctx.userId })
+  return maquinaRepo.create({ ...input, created_by: ctx.userId })
 }
 
 export async function atualizarMaquina(
   ctx: ContextoCadastro,
   input: AtualizarMaquinaInput,
-  repo: MaquinaRepository = getMaquinaRepository()
+  repo?: MaquinaRepository,
+  setorRepo?: SetorRepository
 ) {
   assertAdmin(ctx.role)
+  const maquinaRepo = requireRepo(repo)
   const { id, ...data } = input
   if (data.setor_id) {
-    const setor = await getSetorRepository().findById(data.setor_id)
+    const setores = requireRepo(setorRepo)
+    const setor = await setores.findById(data.setor_id)
     if (!setor || !setor.is_active) throw AppError.validation('Setor inválido ou inativo.')
   }
-  const atualizado = await repo.update(id, data)
+  const atualizado = await maquinaRepo.update(id, data)
   if (!atualizado) throw AppError.notFound('Máquina')
   return atualizado
 }
 
-export async function excluirMaquina(
-  ctx: ContextoCadastro,
-  id: string,
-  repo: MaquinaRepository = getMaquinaRepository()
-) {
+export async function excluirMaquina(ctx: ContextoCadastro, id: string, repo?: MaquinaRepository) {
   assertAdmin(ctx.role)
-  const existente = await repo.findById(id)
+  const maquinaRepo = requireRepo(repo)
+  const existente = await maquinaRepo.findById(id)
   if (!existente) throw AppError.notFound('Máquina')
-  await repo.softDelete(id)
+  await maquinaRepo.softDelete(id)
 }

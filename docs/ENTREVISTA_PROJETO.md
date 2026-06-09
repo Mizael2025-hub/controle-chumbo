@@ -61,7 +61,7 @@
 | Pergunta | Resposta registrada | Ref. doc | Validação |
 |----------|---------------------|----------|-----------|
 | Montes elegíveis | `localizacao = setor`, mesma liga, `barras_atuais > 0`, `status ≠ CONSUMIDO` | `BUSINESS_RULES.md` §3 | ☑ OK |
-| Modo automático | Ordem `posicao_y`, `posicao_x` asc | `FLUXOS_EXEMPLO.md` | ☑ OK |
+| Modo automático | Ordem `movido_setor_em` asc (FIFO liberação) | `FLUXOS_EXEMPLO.md` | ☑ OK |
 | Modo manual | Ordem escolhida pelo usuário | `BUSINESS_RULES.md` §3 | ☑ OK |
 | Borra | Obrigatória (≥ 0) | `BUSINESS_RULES.md` §3 | ☑ OK |
 | Editar/excluir apontamento | **Admin (PCP)** | `BUSINESS_RULES.md` §1 | ☑ OK |

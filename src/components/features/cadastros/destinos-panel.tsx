@@ -14,6 +14,7 @@ import {
   type CriarDestinoFormInput,
 } from '@/validations/cadastros/cadastro-schema'
 import { CadastroPageHeader } from '@/components/features/cadastros/cadastro-page-header'
+import { ModalOverlay } from '@/components/ui/modal-overlay'
 
 type Props = { userId: string; role: UsuarioRole }
 
@@ -177,9 +178,8 @@ export function DestinosPanel({ userId, role }: Props) {
         </ul>
       )}
 
-      {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center">
-          <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-t-ios-modal sm:rounded-ios-card p-6 pb-safe">
+      <ModalOverlay aberto={modalAberto}>
+          <div className="modal-card">
             <h2 className="text-xl font-semibold mb-4">
               {editando ? 'Editar destino' : 'Novo destino'}
             </h2>
@@ -198,7 +198,7 @@ export function DestinosPanel({ userId, role }: Props) {
                     setModalAberto(false)
                     setEditando(null)
                   }}
-                  className="flex-1 bg-zinc-100 font-medium px-4 py-2 rounded-ios-btn min-h-[44px]"
+                  className="btn-modal-cancel"
                 >
                   Cancelar
                 </button>
@@ -212,8 +212,7 @@ export function DestinosPanel({ userId, role }: Props) {
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </ModalOverlay>
     </div>
   )
 }

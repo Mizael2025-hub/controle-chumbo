@@ -96,3 +96,9 @@ class ControleChumboDB extends Dexie {
 }
 
 export const db = new ControleChumboDB()
+
+/** Garante IndexedDB aberto antes de operações no client (evita hang no iOS). */
+export async function ensureDbOpen(): Promise<void> {
+  if (db.isOpen()) return
+  await db.open()
+}

@@ -18,31 +18,35 @@ import type { UsuarioRole } from '@/lib/types/usuario-role'
 import { agoraLocal, dataPtBrParaInputIso, formatarData } from '@/lib/utils/date-time'
 import { formatarNumeroPtBr } from '@/lib/utils/format-number'
 import type { ContagemEstoqueLinha } from '@/repositories/contagem-estoque-repository'
-import {
-  contagemLinhaFormSchema,
-  type ContagemLinhaFormInput,
-} from '@/validations/contagem/contagem-estoque-schema'
+import { contagemLinhaFormSchema } from '@/validations/contagem/contagem-estoque-schema'
 
 type Props = {
   userId: string
   role: UsuarioRole
 }
 
-function linhaParaForm(linha: ContagemEstoqueLinha): ContagemLinhaFormInput {
+type ContagemFormUi = {
+  data_contagem_ui: string
+  liga_id: string
+  quantidade_barras: string
+  numero_lote: string
+}
+
+function linhaParaForm(linha: ContagemEstoqueLinha): ContagemFormUi {
   const [ano, mes, dia] = linha.data_contagem.split('-').map(Number)
   const dataUi = format(new Date(ano, mes - 1, dia), 'dd/MM/yyyy')
   return {
     data_contagem_ui: dataUi,
     liga_id: linha.liga_id,
-    quantidade_barras: linha.quantidade_barras,
+    quantidade_barras: String(linha.quantidade_barras),
     numero_lote: linha.numero_lote ?? '',
   }
 }
 
-const formVazio = (): ContagemLinhaFormInput => ({
+const formVazio = (): ContagemFormUi => ({
   data_contagem_ui: format(agoraLocal(), 'dd/MM/yyyy'),
   liga_id: '',
-  quantidade_barras: 1,
+  quantidade_barras: '',
   numero_lote: '',
 })
 
@@ -50,7 +54,7 @@ export function ContagemEstoqueView({ userId, role }: Props) {
   const ctx = { userId, role }
   const queryClient = useQueryClient()
   const [dataUi, setDataUi] = useState(format(agoraLocal(), 'dd/MM/yyyy'))
-  const [form, setForm] = useState<ContagemLinhaFormInput>(formVazio)
+  const [form, setForm] = useState<ContagemFormUi>(formVazio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
 
   const dataIso = useMemo(() => dataPtBrParaInputIso(dataUi) || null, [dataUi])
@@ -206,13 +210,15 @@ export function ContagemEstoqueView({ userId, role }: Props) {
             id="barras-contagem"
             type="number"
             min={1}
+            inputMode="numeric"
             value={form.quantidade_barras}
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
-                quantidade_barras: Number.parseInt(e.target.value, 10) || 0,
+                quantidade_barras: e.target.value,
               }))
             }
+            placeholder="Ex.: 10"
             className="w-full max-w-[160px] px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-ios-btn text-[16px] min-h-[44px] tabular-nums"
             data-testid="input-barras-contagem"
           />

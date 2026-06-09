@@ -75,3 +75,5 @@ export default config
 | Blur de header | `apple-blur` | Navbar, TabBar |
 | Vermelho sistema | `apple-red` | Erros, ações destrutivas |
 | Safe area bottom | `pb-safe` | TabBar, modais mobile |
+| Sidebar navegação | `bg-nav-sidebar` | Barra lateral web (teal escuro) |
+| Área útil mobile | `app-main-scroll` | Rolagem limitada acima da dock (`--dock-reserva`) |

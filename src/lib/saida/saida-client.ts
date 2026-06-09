@@ -1,6 +1,13 @@
 'use client'
 
-import { isLocalDataSourceClient } from '@/lib/data-source/client'
+import {
+  baixaAgrupadaAction,
+  estornarLiberacaoAction,
+  listarLiberacoesAction,
+  listarMontesElegiveisSaidaAction,
+} from '@/actions/saida-actions'
+import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
+import { dispatchLocalOrAction, dispatchLocalOrActionVoid } from '@/lib/data-source/client-dispatch'
 import { estoqueRepositoryLocalClient } from '@/lib/data-source/estoque-repositories'
 import { saidaRepositoryLocalClient } from '@/lib/data-source/saida-repositories'
 import { AppError } from '@/lib/errors/app-error'
@@ -19,13 +26,10 @@ type ContextoClient = {
   role: UsuarioRole
 }
 
-async function executar<T>(
+async function executarLocal<T>(
   operacao: () => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
   try {
     const data = await operacao()
     return { success: true, data, message }
@@ -37,13 +41,10 @@ async function executar<T>(
   }
 }
 
-async function executarVoid(
+async function executarLocalVoid(
   operacao: () => Promise<void>,
   message: string
 ): Promise<ActionResponse> {
-  if (!isLocalDataSourceClient()) {
-    return { success: false, message: 'Use server actions quando DATA_SOURCE=supabase.' }
-  }
   try {
     await operacao()
     return { success: true, message }
@@ -55,28 +56,57 @@ async function executarVoid(
   }
 }
 
+const listagemDeps = () => ({
+  destinoRepo: cadastroRepositoriesLocal.destinos_saida,
+  estoqueRepo: estoqueRepositoryLocalClient,
+  setorRepo: cadastroRepositoriesLocal.setores,
+})
+
 export const saidaClient = {
   listarMontesElegiveis: (ctx: ContextoClient) =>
-    executar(
-      () => saidaService.listarMontesElegiveisSaida(ctx, estoqueRepositoryLocalClient),
-      ''
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () => saidaService.listarMontesElegiveisSaida(ctx, estoqueRepositoryLocalClient),
+          ''
+        ),
+      () => listarMontesElegiveisSaidaAction()
     ) as Promise<ActionResponse<MonteElegivelSaida[]>>,
 
   listarLiberacoes: (ctx: ContextoClient) =>
-    executar(
-      () => saidaService.listarLiberacoes(ctx, saidaRepositoryLocalClient),
-      ''
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () =>
+            saidaService.listarLiberacoes(ctx, saidaRepositoryLocalClient, listagemDeps()),
+          ''
+        ),
+      () => listarLiberacoesAction()
     ) as Promise<ActionResponse<LiberacaoGrupoView[]>>,
 
   baixaAgrupada: (ctx: ContextoClient, input: BaixaAgrupadaInput) =>
-    executar(
-      () => saidaService.baixaAgrupada(ctx, input, saidaRepositoryLocalClient),
-      'Liberação registrada com sucesso!'
+    dispatchLocalOrAction(
+      () =>
+        executarLocal(
+          () =>
+            saidaService.baixaAgrupada(
+              ctx,
+              input,
+              saidaRepositoryLocalClient,
+              cadastroRepositoriesLocal.destinos_saida
+            ),
+          'Liberação registrada com sucesso!'
+        ),
+      () => baixaAgrupadaAction(input)
     ) as Promise<ActionResponse<BaixaAgrupadaResult>>,
 
   estornarLiberacao: (ctx: ContextoClient, input: EstornarLiberacaoInput) =>
-    executarVoid(
-      () => saidaService.estornarLiberacao(ctx, input, saidaRepositoryLocalClient),
-      'Liberação estornada com sucesso!'
+    dispatchLocalOrActionVoid(
+      () =>
+        executarLocalVoid(
+          () => saidaService.estornarLiberacao(ctx, input, saidaRepositoryLocalClient),
+          'Liberação estornada com sucesso!'
+        ),
+      () => estornarLiberacaoAction(input)
     ),
 }
