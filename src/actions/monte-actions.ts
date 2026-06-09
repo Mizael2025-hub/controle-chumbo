@@ -6,8 +6,7 @@ import {
   getSetorRepository,
 } from '@/lib/data-source/server-repositories'
 
-import { getAuthenticatedUser } from '@/lib/auth/get-user'
-import { getUserRole } from '@/lib/auth/get-user-role'
+import { getActionContext } from '@/lib/auth/get-session-context'
 import { AppError } from '@/lib/errors/app-error'
 import type { ActionResponse } from '@/lib/types/action-response'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
@@ -25,10 +24,8 @@ import {
 import type { LinhaHistoricoMonte } from '@/services/monte-service'
 
 async function getContexto() {
-  const user = await getAuthenticatedUser()
-  const role = await getUserRole()
-  if (!role) throw AppError.unauthorized()
-  return { userId: user.id, role: role as UsuarioRole }
+  const ctx = await getActionContext()
+  return { userId: ctx.user.id, role: ctx.role as UsuarioRole }
 }
 
 function handleError<T = void>(error: unknown): ActionResponse<T> {

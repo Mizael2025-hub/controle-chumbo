@@ -48,7 +48,7 @@ async function garantirSlugUnicoSetor(
   ignorarId?: string
 ): Promise<void> {
   const existente = await repo.findBySlug(slug)
-  if (existente && existente.id !== ignorarId) {
+  if (existente && existente.id !== ignorarId && existente.is_active) {
     throw AppError.conflict('Já existe um setor com este slug.')
   }
 }

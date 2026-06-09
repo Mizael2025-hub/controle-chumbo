@@ -1,58 +1,13 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getDataSource } from '@/lib/data-source'
-import {
-  DEFAULT_MOCK_USER_ID,
-  getMockUserById,
-  MOCK_AUTH_COOKIE,
-  type AuthUser,
-} from '@/lib/auth/mock-users'
-import { createServerSupabase } from '@/lib/supabase/server'
+import { getSessionContext } from '@/lib/auth/get-session-context'
+import type { AuthUser } from '@/lib/auth/mock-users'
 
 export async function getAuthenticatedUser(): Promise<AuthUser> {
-  if (getDataSource() === 'local') {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get(MOCK_AUTH_COOKIE)?.value ?? DEFAULT_MOCK_USER_ID
-    const mockUser = getMockUserById(userId) ?? getMockUserById(DEFAULT_MOCK_USER_ID)
-
-    if (!mockUser) {
-      throw new Error('Usuário mock padrão não configurado.')
-    }
-
-    return mockUser
-  }
-
-  const supabase = await createServerSupabase()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
+  const ctx = await getSessionContext()
+  if (!ctx) {
     redirect('/login')
   }
-
-  const { data: perfil, error: erroPerfil } = await supabase
-    .from('usuarios')
-    .select('nome, email, role, is_active')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (erroPerfil) {
-    console.error('[getAuthenticatedUser.perfil]', erroPerfil)
-  }
-
-  const role =
-    perfil?.is_active === false
-      ? 'operador'
-      : (perfil?.role as AuthUser['role'] | undefined) ?? 'operador'
-
-  return {
-    id: user.id,
-    email: perfil?.email ?? user.email ?? '',
-    nome: perfil?.nome ?? user.email ?? 'Usuário',
-    role,
-  }
+  return ctx.user
 }
 
 export async function getAuthenticatedUserId(): Promise<string> {

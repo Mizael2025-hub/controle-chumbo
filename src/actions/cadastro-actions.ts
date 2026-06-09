@@ -10,8 +10,7 @@ import {
   getTurnoRepository,
 } from '@/lib/data-source/server-repositories'
 
-import { getAuthenticatedUser } from '@/lib/auth/get-user'
-import { getUserRole } from '@/lib/auth/get-user-role'
+import { getActionContext } from '@/lib/auth/get-session-context'
 import { AppError } from '@/lib/errors/app-error'
 import type {
   DestinoSaida,
@@ -42,10 +41,30 @@ import {
 } from '@/validations/cadastros/cadastro-schema'
 
 async function getContexto() {
-  const user = await getAuthenticatedUser()
-  const role = await getUserRole()
-  if (!role) throw AppError.unauthorized()
-  return { userId: user.id, role: role as UsuarioRole }
+  const ctx = await getActionContext()
+  return { userId: ctx.user.id, role: ctx.role as UsuarioRole }
+}
+
+function mensagemValidacao(errors: Record<string, string[] | undefined>): string {
+  const primeiro = Object.values(errors).flat()[0]
+  return primeiro ?? 'Dados inválidos.'
+}
+
+/** Normaliza sort_order vazio/null antes da validação Zod (server action). */
+function sanitizarPayloadCadastro(rawData: unknown): unknown {
+  if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+    return rawData
+  }
+  const data = rawData as Record<string, unknown>
+  if (!('sort_order' in data)) {
+    return rawData
+  }
+  const sortOrder = data.sort_order
+  if (sortOrder === '' || sortOrder === null) {
+    const { sort_order: _removido, ...rest } = data
+    return rest
+  }
+  return rawData
 }
 
 function handleError<T = void>(error: unknown): ActionResponse<T> {
@@ -118,9 +137,10 @@ export async function listarSetoresAction(): Promise<ActionResponse<Setor[]>> {
 
 export async function criarSetorAction(rawData: unknown): Promise<ActionResponse<Setor>> {
   try {
-    const parsed = criarSetorSchema.safeParse(rawData)
+    const parsed = criarSetorSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await cadastroService.criarSetor(ctx, parsed.data, await getSetorRepository())
@@ -132,9 +152,10 @@ export async function criarSetorAction(rawData: unknown): Promise<ActionResponse
 
 export async function atualizarSetorAction(rawData: unknown): Promise<ActionResponse<Setor>> {
   try {
-    const parsed = atualizarSetorSchema.safeParse(rawData)
+    const parsed = atualizarSetorSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await cadastroService.atualizarSetor(ctx, parsed.data, await getSetorRepository())

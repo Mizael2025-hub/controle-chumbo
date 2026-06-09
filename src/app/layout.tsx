@@ -43,11 +43,9 @@ export default async function RootLayout({
           <AppProviders role={role}>{children}</AppProviders>
         </div>
         <div id="app-dock-root">
-          {podeUsarNavegacao(role) && (
-            <>
-              <AppTabBar role={role} />
-              <MobileDebugProbe />
-            </>
+          {podeUsarNavegacao(role) && <AppTabBar role={role} />}
+          {process.env.NODE_ENV === 'development' && podeUsarNavegacao(role) && (
+            <MobileDebugProbe />
           )}
         </div>
         <Toaster position="top-center" richColors closeButton />

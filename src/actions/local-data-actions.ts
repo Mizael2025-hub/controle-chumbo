@@ -1,15 +1,13 @@
 'use server'
 
-import { getAuthenticatedUser } from '@/lib/auth/get-user'
-import { getUserRole } from '@/lib/auth/get-user-role'
+import { getActionContext } from '@/lib/auth/get-session-context'
 import type { ActionResponse } from '@/lib/types/action-response'
 
 export async function limparDadosLocaisAction(): Promise<ActionResponse> {
   try {
-    await getAuthenticatedUser()
-    const role = await getUserRole()
+    const ctx = await getActionContext()
 
-    if (role !== 'admin') {
+    if (ctx.role !== 'admin') {
       return { success: false, message: 'Acesso negado. Somente administradores.' }
     }
 

@@ -9,6 +9,10 @@ type AgentLogPayload = {
 
 /** Log de debug da sessão — POST same-origin para funcionar no celular físico */
 export function agentLog(payload: AgentLogPayload) {
+  if (process.env.NODE_ENV === 'production') {
+    return
+  }
+
   const body = {
     sessionId: payload.sessionId ?? '8315e2',
     timestamp: Date.now(),

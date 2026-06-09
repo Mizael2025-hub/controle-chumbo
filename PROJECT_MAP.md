@@ -6,8 +6,8 @@
 
 ## Informações do Projeto
 
-- **Versão atual:** 0.14.0
-- **Última atualização deste mapa:** 2026-06-09 (Auditoria Supabase + CI/CD GitHub/Vercel)
+- **Versão atual:** 0.14.1
+- **Última atualização deste mapa:** 2026-06-09 (Fix cadastro setor + performance auth/debug)
 - **DATA_SOURCE atual:** supabase (produção remota `ykuxfwxzizhrrgdmkvbk`)
 - **Stack:** Next.js 16 + Dexie (local) | Supabase (produção) + Tailwind v4 + Design System iOS
 
@@ -264,7 +264,7 @@
 | Admin | `src/lib/supabase/admin.ts` | Client service_role (server-only) |
 | Utils | `src/lib/supabase/repository-utils.ts` | Helpers mapeamento row ↔ domínio |
 | Sync | `src/lib/supabase/sync-handler.ts` | UPSERT_ROW / DELETE_ROW com LWW |
-| Auth | `src/lib/auth/get-user.ts`, `get-user-role.ts` | Lookup role na tabela `usuarios` |
+| Auth | `src/lib/auth/get-session-context.ts`, `get-user.ts`, `get-user-role.ts` | `React.cache()` — uma chamada auth+perfil por request; `getActionContext()` para server actions |
 | Middleware | `src/middleware.ts` | Protege rotas quando `DATA_SOURCE=supabase` |
 | Login | `src/app/login/page.tsx`, `auth-actions.ts` | Formulário email/senha iOS |
 | API | `src/app/api/sync/route.ts` | Despacho outbox offline |
@@ -307,6 +307,9 @@ SUPABASE_SECRET_KEY=...              # server-only
 | 2026-06-02 | LoginGate no layout raiz | Internet obrigatória na abertura |
 | 2026-06-02 | `cadastroClient` no browser | Dexie/IndexedDB só no client em modo local |
 | 2026-06-02 | Seed destinos na primeira listagem | ENTREVISTA_PROJETO.md §3 |
+| 2026-06-09 | `getSessionContext` com `React.cache()` | Reduz chamadas duplicadas auth/usuarios por page view |
+| 2026-06-09 | Debug desligado em produção | `agentLog` no-op; `MobileDebugProbe` só dev; `api/debug-log` fora do middleware |
+| 2026-06-09 | Slug setor inativo liberado | `garantirSlugUnicoSetor` ignora `is_active=false` |
 | 2026-06-08 | Split `*-repositories.server.ts` | Evitar import de `server-only` em clients offline |
 | 2026-06-08 | Services com `requireRepo()` | Repositório injetado por action (server) ou client (local) |
 | 2026-06-05 | `InicioLink` + `.modal-actions` | Navegação padronizada; respiro nos rodapés de modais |

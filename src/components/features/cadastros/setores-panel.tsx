@@ -57,7 +57,10 @@ export function SetoresPanel({ userId, role }: Props) {
     },
     onSuccess: (res) => {
       if (!res.success) {
-        toast.error(res.message)
+        const primeiroErro = res.errors
+          ? Object.values(res.errors).flat()[0]
+          : undefined
+        toast.error(primeiroErro ?? res.message)
         return
       }
       toast.success(res.message ?? 'Salvo!')
@@ -65,6 +68,9 @@ export function SetoresPanel({ userId, role }: Props) {
       setEditando(null)
       form.reset()
       invalidar()
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar setor.')
     },
   })
 
@@ -192,6 +198,11 @@ export function SetoresPanel({ userId, role }: Props) {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Nome</label>
                 <input {...form.register('nome')} className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px]" />
+                {form.formState.errors.nome && (
+                  <span className="text-[12px] text-apple-red">
+                    {form.formState.errors.nome.message}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Tipo</label>
@@ -205,6 +216,11 @@ export function SetoresPanel({ userId, role }: Props) {
                     </option>
                   ))}
                 </select>
+                {form.formState.errors.tipo && (
+                  <span className="text-[12px] text-apple-red">
+                    {form.formState.errors.tipo.message}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Ordem (opcional)</label>
@@ -213,6 +229,11 @@ export function SetoresPanel({ userId, role }: Props) {
                   {...form.register('sort_order', { setValueAs: parseSortOrderInput })}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-ios-btn text-[16px]"
                 />
+                {form.formState.errors.sort_order && (
+                  <span className="text-[12px] text-apple-red">
+                    {form.formState.errors.sort_order.message}
+                  </span>
+                )}
               </div>
               <div className="flex gap-2 modal-actions">
                 <button
