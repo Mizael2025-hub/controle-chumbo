@@ -56,10 +56,26 @@ export function SetoresPanel({ userId, role }: Props) {
       }
       const dadosSetor = { ...values }
       delete dadosSetor.sort_order
-      return cadastroClient.criarSetor(ctx, {
+      const payload = {
         ...dadosSetor,
         ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
-      })
+      }
+      // #region agent log
+      fetch('/api/debug-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'b850a4',
+          location: 'setores-panel.tsx:salvarMutation',
+          message: 'payload criarSetor',
+          hypothesisId: 'H-slug',
+          runId: 'post-fix-2',
+          data: { payload },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
+      return cadastroClient.criarSetor(ctx, payload)
     },
     onSuccess: (res) => {
       if (!res.success) {

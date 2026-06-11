@@ -16,19 +16,23 @@ const sortOrderSchema = z
 
 const updatedAtSchema = z.string().datetime('Timestamp de controle obrigatório')
 
-/** Slug gerado no servidor se omitido; string vazia do form vira undefined. */
-const slugOpcionalSchema = z
-  .string()
-  .trim()
-  .transform((s) => (s === '' ? undefined : s))
-  .pipe(
-    z
-      .string()
-      .min(2, 'Slug deve ter pelo menos 2 caracteres')
-      .max(50, 'Slug deve ter no máximo 50 caracteres')
-      .regex(/^[a-z0-9-]+$/, 'Slug inválido. Use letras minúsculas, números e hífen')
-      .optional()
-  )
+/** Slug gerado no servidor se omitido; ausente/vazio/null aceitos na entrada. */
+const slugOpcionalSchema = z.preprocess(
+  (valor) => {
+    if (valor === '' || valor === null || valor === undefined) return undefined
+    if (typeof valor === 'string') {
+      const normalizado = valor.trim()
+      return normalizado === '' ? undefined : normalizado
+    }
+    return valor
+  },
+  z
+    .string()
+    .min(2, 'Slug deve ter pelo menos 2 caracteres')
+    .max(50, 'Slug deve ter no máximo 50 caracteres')
+    .regex(/^[a-z0-9-]+$/, 'Slug inválido. Use letras minúsculas, números e hífen')
+    .optional()
+)
 
 export const criarCadastroSimplesSchema = z.object({
   nome: nomeSchema,

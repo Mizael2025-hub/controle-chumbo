@@ -139,7 +139,33 @@ export async function listarSetoresAction(): Promise<ActionResponse<Setor[]>> {
 
 export async function criarSetorAction(rawData: unknown): Promise<ActionResponse<Setor>> {
   try {
-    const parsed = criarSetorSchema.safeParse(sanitizarPayloadCadastro(rawData))
+    const sanitizado = sanitizarPayloadCadastro(rawData)
+    const parsed = criarSetorSchema.safeParse(sanitizado)
+    // #region agent log
+    const debugPayload = {
+      sessionId: 'b850a4',
+      location: 'cadastro-actions.ts:criarSetorAction',
+      message: 'criarSetor validacao',
+      hypothesisId: 'H-slug',
+      runId: 'post-fix-2',
+      data: {
+        parseOk: parsed.success,
+        parseError: parsed.success ? null : parsed.error.issues[0]?.message,
+        parsePath: parsed.success ? null : parsed.error.issues[0]?.path,
+        keys:
+          sanitizado && typeof sanitizado === 'object' && !Array.isArray(sanitizado)
+            ? Object.keys(sanitizado as Record<string, unknown>)
+            : [],
+      },
+      timestamp: Date.now(),
+    }
+    console.error('[criarSetorAction.debug]', debugPayload.data)
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'b850a4' },
+      body: JSON.stringify(debugPayload),
+    }).catch(() => {})
+    // #endregion
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors
       return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
