@@ -6,14 +6,12 @@
 
 ## ▶️ TAREFA ATUAL
 
-**Deploy Vercel pós-fix setor/performance** — push + redeploy obrigatório (alterações em `NEXT_PUBLIC_*` exigem rebuild)
+**Validar em produção** — após deploy automático Vercel: login admin → Cadastros → Setores → criar setor com campo Ordem vazio e confirmar sucesso.
 
-Checklist manual no dashboard Vercel → Settings → Environment Variables:
+Checklist Vercel → Settings → Environment Variables (rebuild se alterar):
 - `DATA_SOURCE=supabase`
 - `NEXT_PUBLIC_DATA_SOURCE=supabase` (deve ser **igual** a `DATA_SOURCE`)
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
-
-Após deploy: login `admin@fabrica.com` → Cadastros → Setores → criar "Montagem" e confirmar `POST /setores` nos logs Supabase.
 
 ---
 
@@ -32,6 +30,7 @@ Após deploy: login `admin@fabrica.com` → Cadastros → Setores → criar "Mon
 
 | Data | Tarefa | Arquivos |
 |---|---|---|
+| 2026-06-11 | Fix sort_order setor + perf middleware/Dexie + grants service_role | format-number.ts, cadastro-actions.ts, cadastro-repository.supabase.ts, repository-utils.ts, cadastro-client.ts, middleware.ts, 202606110001_grants_service_role.sql, TASKS.md, PROJECT_MAP.md |
 | 2026-06-09 | Fix cadastro setor + performance auth/debug | get-session-context.ts, get-user.ts, get-user-role.ts, *-actions.ts, setores-panel.tsx, cadastro-service.ts, cadastro-actions.ts, agent-log.ts, layout.tsx, middleware.ts, TASKS.md, PROJECT_MAP.md |
 | 2026-06-09 | Auditoria Supabase + CI/CD GitHub/Vercel | supabase/migrations/202606090001_security_functions.sql, .gitignore, TASKS.md, PROJECT_MAP.md |
 | 2026-06-08 | Supabase Fase D — migrations, auth, repos, sync | supabase/migrations/*, reset_completo_projeto.sql, database.types.ts, *-repository.supabase.ts, auth-actions, /login, middleware, /api/sync, server-repositories |

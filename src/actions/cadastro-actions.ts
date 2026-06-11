@@ -24,6 +24,7 @@ import type {
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import type { ActionResponse } from '@/lib/types/action-response'
 import * as cadastroService from '@/services/cadastro-service'
+import { normalizeSortOrderInput } from '@/lib/utils/format-number'
 import {
   atualizarCadastroSimplesSchema,
   atualizarDestinoSchema,
@@ -50,7 +51,7 @@ function mensagemValidacao(errors: Record<string, string[] | undefined>): string
   return primeiro ?? 'Dados inválidos.'
 }
 
-/** Normaliza sort_order vazio/null antes da validação Zod (server action). */
+/** Normaliza sort_order vazio/null/string antes da validação Zod (server action). */
 function sanitizarPayloadCadastro(rawData: unknown): unknown {
   if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
     return rawData
@@ -59,12 +60,13 @@ function sanitizarPayloadCadastro(rawData: unknown): unknown {
   if (!('sort_order' in data)) {
     return rawData
   }
-  const sortOrder = data.sort_order
-  if (sortOrder === '' || sortOrder === null) {
-    const { sort_order: _removido, ...rest } = data
+  const sortOrder = normalizeSortOrderInput(data.sort_order)
+  if (sortOrder === undefined) {
+    const rest = { ...data }
+    delete rest.sort_order
     return rest
   }
-  return rawData
+  return { ...data, sort_order: sortOrder }
 }
 
 function handleError<T = void>(error: unknown): ActionResponse<T> {
@@ -137,7 +139,34 @@ export async function listarSetoresAction(): Promise<ActionResponse<Setor[]>> {
 
 export async function criarSetorAction(rawData: unknown): Promise<ActionResponse<Setor>> {
   try {
-    const parsed = criarSetorSchema.safeParse(sanitizarPayloadCadastro(rawData))
+    const sanitizado = sanitizarPayloadCadastro(rawData)
+    const parsed = criarSetorSchema.safeParse(sanitizado)
+    // #region agent log
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'b850a4' },
+      body: JSON.stringify({
+        sessionId: 'b850a4',
+        location: 'cadastro-actions.ts:criarSetorAction',
+        message: 'criarSetor payload',
+        hypothesisId: 'H1',
+        runId: 'post-fix',
+        data: {
+          rawSortOrder:
+            rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+              ? (rawData as Record<string, unknown>).sort_order
+              : undefined,
+          sanitizadoSortOrder:
+            sanitizado && typeof sanitizado === 'object' && !Array.isArray(sanitizado)
+              ? (sanitizado as Record<string, unknown>).sort_order
+              : undefined,
+          parseOk: parsed.success,
+          parseError: parsed.success ? null : parsed.error.issues[0]?.message,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors
       return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }

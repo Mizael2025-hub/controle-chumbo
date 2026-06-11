@@ -31,9 +31,8 @@ import {
   listarTurnosAction,
 } from '@/actions/cadastro-actions'
 import { dispatchLocalOrAction, dispatchLocalOrActionVoid } from '@/lib/data-source/client-dispatch'
-import { ensureDbOpen } from '@/lib/offline/db'
-import { cadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
 import { AppError } from '@/lib/errors/app-error'
+import type { cadastroRepositoriesLocal as CadastroRepositoriesLocal } from '@/lib/data-source/cadastro-repositories'
 import type { UsuarioRole } from '@/lib/types/usuario-role'
 import type { ActionResponse } from '@/lib/types/action-response'
 import * as cadastroService from '@/services/cadastro-service'
@@ -57,13 +56,22 @@ function wrapError(error: unknown): ActionResponse {
   return { success: false, message: 'Erro interno ao processar a solicitação.' }
 }
 
+async function abrirCadastroLocal() {
+  const [{ ensureDbOpen }, { cadastroRepositoriesLocal }] = await Promise.all([
+    import('@/lib/offline/db'),
+    import('@/lib/data-source/cadastro-repositories'),
+  ])
+  await ensureDbOpen()
+  return cadastroRepositoriesLocal as typeof CadastroRepositoriesLocal
+}
+
 async function executarCadastroLocal<T>(
-  operacao: () => Promise<T>,
+  operacao: (repos: typeof CadastroRepositoriesLocal) => Promise<T>,
   message: string
 ): Promise<ActionResponse<T>> {
   try {
-    await ensureDbOpen()
-    const data = await operacao()
+    const repos = await abrirCadastroLocal()
+    const data = await operacao(repos)
     return wrapSuccess(data, message)
   } catch (error) {
     console.error('[executarCadastroLocal]', error)
@@ -72,12 +80,12 @@ async function executarCadastroLocal<T>(
 }
 
 async function executarCadastroLocalVoid(
-  operacao: () => Promise<void>,
+  operacao: (repos: typeof CadastroRepositoriesLocal) => Promise<void>,
   message: string
 ): Promise<ActionResponse> {
   try {
-    await ensureDbOpen()
-    await operacao()
+    const repos = await abrirCadastroLocal()
+    await operacao(repos)
     return { success: true, message }
   } catch (error) {
     console.error('[executarCadastroLocalVoid]', error)
@@ -90,7 +98,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarLigas(_ctx, cadastroRepositoriesLocal.ligas),
+          (repos) => cadastroService.listarLigas(_ctx, repos.ligas),
           ''
         ),
       () => listarLigasAction()
@@ -100,7 +108,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.criarLiga(_ctx, input, cadastroRepositoriesLocal.ligas),
+          (repos) => cadastroService.criarLiga(_ctx, input, repos.ligas),
           'Liga criada com sucesso!'
         ),
       () => criarLigaAction(input)
@@ -110,7 +118,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.atualizarLiga(_ctx, input, cadastroRepositoriesLocal.ligas),
+          (repos) => cadastroService.atualizarLiga(_ctx, input, repos.ligas),
           'Liga atualizada com sucesso!'
         ),
       () => atualizarLigaAction(input)
@@ -120,7 +128,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirLiga(_ctx, id, cadastroRepositoriesLocal.ligas),
+          (repos) => cadastroService.excluirLiga(_ctx, id, repos.ligas),
           'Liga desativada com sucesso!'
         ),
       () => excluirLigaAction({ id })
@@ -130,7 +138,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarSetores(_ctx, cadastroRepositoriesLocal.setores),
+          (repos) => cadastroService.listarSetores(_ctx, repos.setores),
           ''
         ),
       () => listarSetoresAction()
@@ -140,7 +148,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.criarSetor(_ctx, input, cadastroRepositoriesLocal.setores),
+          (repos) => cadastroService.criarSetor(_ctx, input, repos.setores),
           'Setor criado com sucesso!'
         ),
       () => criarSetorAction(input)
@@ -150,7 +158,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.atualizarSetor(_ctx, input, cadastroRepositoriesLocal.setores),
+          (repos) => cadastroService.atualizarSetor(_ctx, input, repos.setores),
           'Setor atualizado com sucesso!'
         ),
       () => atualizarSetorAction(input)
@@ -160,7 +168,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirSetor(_ctx, id, cadastroRepositoriesLocal.setores),
+          (repos) => cadastroService.excluirSetor(_ctx, id, repos.setores),
           'Setor desativado com sucesso!'
         ),
       () => excluirSetorAction({ id })
@@ -170,7 +178,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarDestinos(_ctx, cadastroRepositoriesLocal.destinos_saida),
+          (repos) => cadastroService.listarDestinos(_ctx, repos.destinos_saida),
           ''
         ),
       () => listarDestinosAction()
@@ -180,7 +188,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.criarDestino(_ctx, input, cadastroRepositoriesLocal.destinos_saida),
+          (repos) => cadastroService.criarDestino(_ctx, input, repos.destinos_saida),
           'Destino criado com sucesso!'
         ),
       () => criarDestinoAction(input)
@@ -193,8 +201,8 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
-            cadastroService.atualizarDestino(_ctx, input, cadastroRepositoriesLocal.destinos_saida),
+          (repos) =>
+            cadastroService.atualizarDestino(_ctx, input, repos.destinos_saida),
           'Destino atualizado com sucesso!'
         ),
       () => atualizarDestinoAction(input)
@@ -204,7 +212,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirDestino(_ctx, id, cadastroRepositoriesLocal.destinos_saida),
+          (repos) => cadastroService.excluirDestino(_ctx, id, repos.destinos_saida),
           'Destino desativado com sucesso!'
         ),
       () => excluirDestinoAction({ id })
@@ -214,7 +222,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarOperadores(_ctx, cadastroRepositoriesLocal.operadores),
+          (repos) => cadastroService.listarOperadores(_ctx, repos.operadores),
           ''
         ),
       () => listarOperadoresAction()
@@ -224,7 +232,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.criarOperador(_ctx, input, cadastroRepositoriesLocal.operadores),
+          (repos) => cadastroService.criarOperador(_ctx, input, repos.operadores),
           'Operador criado com sucesso!'
         ),
       () => criarOperadorAction(input)
@@ -237,7 +245,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.atualizarOperador(_ctx, input, cadastroRepositoriesLocal.operadores),
+          (repos) => cadastroService.atualizarOperador(_ctx, input, repos.operadores),
           'Operador atualizado com sucesso!'
         ),
       () => atualizarOperadorAction(input)
@@ -247,7 +255,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirOperador(_ctx, id, cadastroRepositoriesLocal.operadores),
+          (repos) => cadastroService.excluirOperador(_ctx, id, repos.operadores),
           'Operador desativado com sucesso!'
         ),
       () => excluirOperadorAction({ id })
@@ -257,7 +265,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarTurnos(_ctx, cadastroRepositoriesLocal.turnos),
+          (repos) => cadastroService.listarTurnos(_ctx, repos.turnos),
           ''
         ),
       () => listarTurnosAction()
@@ -267,7 +275,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.criarTurno(_ctx, input, cadastroRepositoriesLocal.turnos),
+          (repos) => cadastroService.criarTurno(_ctx, input, repos.turnos),
           'Turno criado com sucesso!'
         ),
       () => criarTurnoAction(input)
@@ -277,7 +285,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.atualizarTurno(_ctx, input, cadastroRepositoriesLocal.turnos),
+          (repos) => cadastroService.atualizarTurno(_ctx, input, repos.turnos),
           'Turno atualizado com sucesso!'
         ),
       () => atualizarTurnoAction(input)
@@ -287,7 +295,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirTurno(_ctx, id, cadastroRepositoriesLocal.turnos),
+          (repos) => cadastroService.excluirTurno(_ctx, id, repos.turnos),
           'Turno desativado com sucesso!'
         ),
       () => excluirTurnoAction({ id })
@@ -297,8 +305,8 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
-            cadastroService.listarModelosProduto(_ctx, cadastroRepositoriesLocal.modelos_produto),
+          (repos) =>
+            cadastroService.listarModelosProduto(_ctx, repos.modelos_produto),
           ''
         ),
       () => listarModelosProdutoAction()
@@ -311,8 +319,8 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
-            cadastroService.criarModeloProduto(_ctx, input, cadastroRepositoriesLocal.modelos_produto),
+          (repos) =>
+            cadastroService.criarModeloProduto(_ctx, input, repos.modelos_produto),
           'Modelo criado com sucesso!'
         ),
       () => criarModeloProdutoAction(input)
@@ -325,11 +333,11 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
+          (repos) =>
             cadastroService.atualizarModeloProduto(
               _ctx,
               input,
-              cadastroRepositoriesLocal.modelos_produto
+              repos.modelos_produto
             ),
           'Modelo atualizado com sucesso!'
         ),
@@ -340,8 +348,8 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () =>
-            cadastroService.excluirModeloProduto(_ctx, id, cadastroRepositoriesLocal.modelos_produto),
+          (repos) =>
+            cadastroService.excluirModeloProduto(_ctx, id, repos.modelos_produto),
           'Modelo desativado com sucesso!'
         ),
       () => excluirModeloProdutoAction({ id })
@@ -351,7 +359,7 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () => cadastroService.listarMaquinas(_ctx, cadastroRepositoriesLocal.maquinas),
+          (repos) => cadastroService.listarMaquinas(_ctx, repos.maquinas),
           ''
         ),
       () => listarMaquinasAction()
@@ -361,12 +369,12 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
+          (repos) =>
             cadastroService.criarMaquina(
               _ctx,
               input,
-              cadastroRepositoriesLocal.maquinas,
-              cadastroRepositoriesLocal.setores
+              repos.maquinas,
+              repos.setores
             ),
           'Máquina criada com sucesso!'
         ),
@@ -380,12 +388,12 @@ export const cadastroClient = {
     dispatchLocalOrAction(
       () =>
         executarCadastroLocal(
-          () =>
+          (repos) =>
             cadastroService.atualizarMaquina(
               _ctx,
               input,
-              cadastroRepositoriesLocal.maquinas,
-              cadastroRepositoriesLocal.setores
+              repos.maquinas,
+              repos.setores
             ),
           'Máquina atualizada com sucesso!'
         ),
@@ -396,7 +404,7 @@ export const cadastroClient = {
     dispatchLocalOrActionVoid(
       () =>
         executarCadastroLocalVoid(
-          () => cadastroService.excluirMaquina(_ctx, id, cadastroRepositoriesLocal.maquinas),
+          (repos) => cadastroService.excluirMaquina(_ctx, id, repos.maquinas),
           'Máquina desativada com sucesso!'
         ),
       () => excluirMaquinaAction({ id })

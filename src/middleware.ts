@@ -32,9 +32,11 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // getSession: leitura local do cookie (sem round-trip Auth) — suficiente para redirect de rotas
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   const pathname = request.nextUrl.pathname
   const isLoginRoute = pathname.startsWith('/login')

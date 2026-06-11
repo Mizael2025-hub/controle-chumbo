@@ -6,8 +6,8 @@
 
 ## Informações do Projeto
 
-- **Versão atual:** 0.14.1
-- **Última atualização deste mapa:** 2026-06-09 (Fix cadastro setor + performance auth/debug)
+- **Versão atual:** 0.14.2
+- **Última atualização deste mapa:** 2026-06-11 (Fix sort_order cadastro + perf + grants Supabase)
 - **DATA_SOURCE atual:** supabase (produção remota `ykuxfwxzizhrrgdmkvbk`)
 - **Stack:** Next.js 16 + Dexie (local) | Supabase (produção) + Tailwind v4 + Design System iOS
 

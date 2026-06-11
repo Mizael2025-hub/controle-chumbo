@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import {
   assertUpdatedAt,
   proximoSortOrder,
+  resolveSortOrderForInsert,
   throwIfSupabaseError,
 } from '@/lib/supabase/repository-utils'
 import { TIPO_PRODUTO_MVP } from '@/lib/types/tipo-produto-modelo'
@@ -65,7 +66,9 @@ function createCadastroSimplesSupabase(tabela: 'operadores' | 'turnos', entidade
 
     async create(data: CreateCadastroSimples) {
       const supabase = await createServerSupabase()
-      const sortOrder = data.sort_order ?? (await proximoSortOrder(tabela))
+      const sortOrder = await resolveSortOrderForInsert(data.sort_order, () =>
+        proximoSortOrder(tabela)
+      )
       const registro = {
         id: uuid(),
         nome: data.nome.trim(),
@@ -212,7 +215,9 @@ export const setorRepositorySupabase: SetorRepository = {
 
   async create(data: CreateSetorInput) {
     const supabase = await createServerSupabase()
-    const sortOrder = data.sort_order ?? (await proximoSortOrder('setores'))
+    const sortOrder = await resolveSortOrderForInsert(data.sort_order, () =>
+      proximoSortOrder('setores')
+    )
     const registro = {
       id: uuid(),
       nome: data.nome.trim(),
@@ -291,7 +296,9 @@ export const destinoSaidaRepositorySupabase: DestinoSaidaRepository = {
 
   async create(data: CreateDestinoInput) {
     const supabase = await createServerSupabase()
-    const sortOrder = data.sort_order ?? (await proximoSortOrder('destinos_saida'))
+    const sortOrder = await resolveSortOrderForInsert(data.sort_order, () =>
+      proximoSortOrder('destinos_saida')
+    )
     const registro = {
       id: uuid(),
       nome: data.nome.trim(),
@@ -378,9 +385,9 @@ export const maquinaRepositorySupabase: MaquinaRepository = {
 
   async create(data: CreateMaquinaInput) {
     const supabase = await createServerSupabase()
-    const sortOrder =
-      data.sort_order ??
-      (await proximoSortOrder('maquinas', { coluna: 'setor_id', valor: data.setor_id }))
+    const sortOrder = await resolveSortOrderForInsert(data.sort_order, () =>
+      proximoSortOrder('maquinas', { coluna: 'setor_id', valor: data.setor_id })
+    )
     const registro = {
       id: uuid(),
       setor_id: data.setor_id,
@@ -461,7 +468,9 @@ export const modeloProdutoRepositorySupabase: ModeloProdutoRepository = {
 
   async create(data: CreateModeloProdutoInput) {
     const supabase = await createServerSupabase()
-    const sortOrder = data.sort_order ?? (await proximoSortOrder('modelos_produto'))
+    const sortOrder = await resolveSortOrderForInsert(data.sort_order, () =>
+      proximoSortOrder('modelos_produto')
+    )
     const registro = {
       id: uuid(),
       nome: data.nome.trim(),

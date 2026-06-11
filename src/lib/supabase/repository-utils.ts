@@ -1,4 +1,5 @@
 import { AppError } from '@/lib/errors/app-error'
+import { normalizeSortOrderInput } from '@/lib/utils/format-number'
 import type { PostgrestError } from '@supabase/supabase-js'
 
 export function assertUpdatedAt(
@@ -21,6 +22,15 @@ export function throwIfSupabaseError(
     console.error(`[supabase:${entidade}]`, error)
     throw AppError.validation(`${entidade}: ${error.message}`)
   }
+}
+
+export async function resolveSortOrderForInsert(
+  value: number | undefined,
+  proximo: () => Promise<number>
+): Promise<number> {
+  const normalizado = normalizeSortOrderInput(value)
+  if (normalizado !== undefined) return normalizado
+  return proximo()
 }
 
 export async function proximoSortOrder(
