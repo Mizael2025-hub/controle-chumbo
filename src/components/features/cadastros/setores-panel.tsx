@@ -16,7 +16,7 @@ import {
 } from '@/validations/cadastros/cadastro-schema'
 import { CadastroPageHeader } from '@/components/features/cadastros/cadastro-page-header'
 import { ModalOverlay } from '@/components/ui/modal-overlay'
-import { parseSortOrderInput } from '@/lib/utils/format-number'
+import { normalizeSortOrderInput, parseSortOrderInput } from '@/lib/utils/format-number'
 
 type Props = { userId: string; role: UsuarioRole }
 
@@ -44,16 +44,22 @@ export function SetoresPanel({ userId, role }: Props) {
 
   const salvarMutation = useMutation({
     mutationFn: async (values: CriarSetorFormInput) => {
+      const sortOrder = normalizeSortOrderInput(values.sort_order)
       if (editando) {
         return cadastroClient.atualizarSetor(ctx, {
           id: editando.id,
           nome: values.nome,
           tipo: values.tipo,
-          sort_order: values.sort_order,
+          ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
           updated_at: editando.updated_at,
         })
       }
-      return cadastroClient.criarSetor(ctx, values)
+      const dadosSetor = { ...values }
+      delete dadosSetor.sort_order
+      return cadastroClient.criarSetor(ctx, {
+        ...dadosSetor,
+        ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
+      })
     },
     onSuccess: (res) => {
       if (!res.success) {

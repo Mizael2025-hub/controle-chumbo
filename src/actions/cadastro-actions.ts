@@ -139,34 +139,7 @@ export async function listarSetoresAction(): Promise<ActionResponse<Setor[]>> {
 
 export async function criarSetorAction(rawData: unknown): Promise<ActionResponse<Setor>> {
   try {
-    const sanitizado = sanitizarPayloadCadastro(rawData)
-    const parsed = criarSetorSchema.safeParse(sanitizado)
-    // #region agent log
-    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'b850a4' },
-      body: JSON.stringify({
-        sessionId: 'b850a4',
-        location: 'cadastro-actions.ts:criarSetorAction',
-        message: 'criarSetor payload',
-        hypothesisId: 'H1',
-        runId: 'post-fix',
-        data: {
-          rawSortOrder:
-            rawData && typeof rawData === 'object' && !Array.isArray(rawData)
-              ? (rawData as Record<string, unknown>).sort_order
-              : undefined,
-          sanitizadoSortOrder:
-            sanitizado && typeof sanitizado === 'object' && !Array.isArray(sanitizado)
-              ? (sanitizado as Record<string, unknown>).sort_order
-              : undefined,
-          parseOk: parsed.success,
-          parseError: parsed.success ? null : parsed.error.issues[0]?.message,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
+    const parsed = criarSetorSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors
       return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
@@ -220,7 +193,7 @@ export async function listarDestinosAction(): Promise<ActionResponse<DestinoSaid
 
 export async function criarDestinoAction(rawData: unknown): Promise<ActionResponse<DestinoSaida>> {
   try {
-    const parsed = criarDestinoSchema.safeParse(rawData)
+    const parsed = criarDestinoSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -234,7 +207,7 @@ export async function criarDestinoAction(rawData: unknown): Promise<ActionRespon
 
 export async function atualizarDestinoAction(rawData: unknown): Promise<ActionResponse<DestinoSaida>> {
   try {
-    const parsed = atualizarDestinoSchema.safeParse(rawData)
+    const parsed = atualizarDestinoSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -272,7 +245,7 @@ export async function listarOperadoresAction(): Promise<ActionResponse<Operador[
 
 export async function criarOperadorAction(rawData: unknown): Promise<ActionResponse<Operador>> {
   try {
-    const parsed = criarCadastroSimplesSchema.safeParse(rawData)
+    const parsed = criarCadastroSimplesSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -286,7 +259,7 @@ export async function criarOperadorAction(rawData: unknown): Promise<ActionRespo
 
 export async function atualizarOperadorAction(rawData: unknown): Promise<ActionResponse<Operador>> {
   try {
-    const parsed = atualizarCadastroSimplesSchema.safeParse(rawData)
+    const parsed = atualizarCadastroSimplesSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -324,7 +297,7 @@ export async function listarTurnosAction(): Promise<ActionResponse<Turno[]>> {
 
 export async function criarTurnoAction(rawData: unknown): Promise<ActionResponse<Turno>> {
   try {
-    const parsed = criarCadastroSimplesSchema.safeParse(rawData)
+    const parsed = criarCadastroSimplesSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -338,7 +311,7 @@ export async function criarTurnoAction(rawData: unknown): Promise<ActionResponse
 
 export async function atualizarTurnoAction(rawData: unknown): Promise<ActionResponse<Turno>> {
   try {
-    const parsed = atualizarCadastroSimplesSchema.safeParse(rawData)
+    const parsed = atualizarCadastroSimplesSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -376,7 +349,7 @@ export async function listarModelosProdutoAction(): Promise<ActionResponse<Model
 
 export async function criarModeloProdutoAction(rawData: unknown): Promise<ActionResponse<ModeloProduto>> {
   try {
-    const parsed = criarModeloProdutoSchema.safeParse(rawData)
+    const parsed = criarModeloProdutoSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -390,7 +363,7 @@ export async function criarModeloProdutoAction(rawData: unknown): Promise<Action
 
 export async function atualizarModeloProdutoAction(rawData: unknown): Promise<ActionResponse<ModeloProduto>> {
   try {
-    const parsed = atualizarModeloProdutoSchema.safeParse(rawData)
+    const parsed = atualizarModeloProdutoSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -428,7 +401,7 @@ export async function listarMaquinasAction(): Promise<ActionResponse<Maquina[]>>
 
 export async function criarMaquinaAction(rawData: unknown): Promise<ActionResponse<Maquina>> {
   try {
-    const parsed = criarMaquinaSchema.safeParse(rawData)
+    const parsed = criarMaquinaSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
@@ -442,7 +415,7 @@ export async function criarMaquinaAction(rawData: unknown): Promise<ActionRespon
 
 export async function atualizarMaquinaAction(rawData: unknown): Promise<ActionResponse<Maquina>> {
   try {
-    const parsed = atualizarMaquinaSchema.safeParse(rawData)
+    const parsed = atualizarMaquinaSchema.safeParse(sanitizarPayloadCadastro(rawData))
     if (!parsed.success) {
       return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
     }
