@@ -1,6 +1,5 @@
 import { z } from 'zod'
-
-const updatedAtSchema = z.string().datetime('Timestamp de controle obrigatório')
+import { updatedAtSchema } from '@/validations/shared/updated-at-schema'
 
 export const linhaBaixaAgrupadaSchema = z.object({
   monte_id: z.string().uuid('Monte inválido'),

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { CHAVES_COR_LIGA } from '@/lib/types/chave-cor-liga'
 import { POLARIDADES_MODELO } from '@/lib/types/polaridade-modelo'
 import { SETOR_TIPOS } from '@/lib/types/setor-tipo'
+import { updatedAtSchema } from '@/validations/shared/updated-at-schema'
 
 const nomeSchema = z
   .string()
@@ -13,8 +14,6 @@ const sortOrderSchema = z
   .number()
   .int('Ordem deve ser um número inteiro')
   .min(0, 'Ordem deve ser maior ou igual a zero')
-
-const updatedAtSchema = z.string().datetime('Timestamp de controle obrigatório')
 
 /** Slug gerado no servidor se omitido; ausente/vazio/null aceitos na entrada. */
 const slugOpcionalSchema = z.preprocess(

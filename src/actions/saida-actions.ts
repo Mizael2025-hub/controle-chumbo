@@ -27,6 +27,11 @@ async function getContexto() {
   return { userId: ctx.user.id, role: ctx.role as UsuarioRole }
 }
 
+function mensagemValidacao(errors: Record<string, string[] | undefined>): string {
+  const primeiro = Object.values(errors).flat()[0]
+  return primeiro ?? 'Dados inválidos.'
+}
+
 function handleError<T = void>(error: unknown): ActionResponse<T> {
   if (error instanceof AppError) return { success: false, message: error.message }
   console.error('[saidaAction]', error)
@@ -64,8 +69,35 @@ export async function baixaAgrupadaAction(
 ): Promise<ActionResponse<BaixaAgrupadaResult>> {
   try {
     const parsed = baixaAgrupadaSchema.safeParse(rawData)
+    // #region agent log
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const issue = parsed.error.issues[0]
+      console.error('[baixaAgrupadaAction.debug]', {
+        message: issue?.message,
+        path: issue?.path,
+        updatedAtSample:
+          rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+            ? (rawData as { linhas?: { updated_at?: string }[] }).linhas?.[0]?.updated_at
+            : undefined,
+      })
+      fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'b850a4' },
+        body: JSON.stringify({
+          sessionId: 'b850a4',
+          location: 'saida-actions.ts:baixaAgrupadaAction',
+          message: 'validacao falhou',
+          hypothesisId: 'H-updated-at',
+          runId: 'post-fix-3',
+          data: { issue: issue?.message, path: issue?.path },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+    }
+    // #endregion
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await saidaService.baixaAgrupada(ctx, parsed.data, await getSaidaRepository(), await getDestinoSaidaRepository())
@@ -79,7 +111,8 @@ export async function estornarLiberacaoAction(rawData: unknown): Promise<ActionR
   try {
     const parsed = estornarLiberacaoSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     await saidaService.estornarLiberacao(ctx, parsed.data, await getSaidaRepository())

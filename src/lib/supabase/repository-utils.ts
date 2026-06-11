@@ -1,5 +1,6 @@
 import { AppError } from '@/lib/errors/app-error'
 import { normalizeSortOrderInput } from '@/lib/utils/format-number'
+import { timestamptzIguais } from '@/lib/utils/timestamptz'
 import type { PostgrestError } from '@supabase/supabase-js'
 
 export function assertUpdatedAt(
@@ -7,7 +8,7 @@ export function assertUpdatedAt(
   expected: string,
   entidade: string
 ): void {
-  if (existente.updated_at !== expected) {
+  if (!timestamptzIguais(existente.updated_at, expected)) {
     throw AppError.conflict(
       `${entidade} foi alterado por outro usuário. Recarregue e tente novamente.`
     )

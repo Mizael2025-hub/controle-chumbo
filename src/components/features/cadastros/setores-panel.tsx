@@ -56,26 +56,10 @@ export function SetoresPanel({ userId, role }: Props) {
       }
       const dadosSetor = { ...values }
       delete dadosSetor.sort_order
-      const payload = {
+      return cadastroClient.criarSetor(ctx, {
         ...dadosSetor,
         ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
-      }
-      // #region agent log
-      fetch('/api/debug-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'b850a4',
-          location: 'setores-panel.tsx:salvarMutation',
-          message: 'payload criarSetor',
-          hypothesisId: 'H-slug',
-          runId: 'post-fix-2',
-          data: { payload },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
-      return cadastroClient.criarSetor(ctx, payload)
+      })
     },
     onSuccess: (res) => {
       if (!res.success) {
@@ -107,15 +91,23 @@ export function SetoresPanel({ userId, role }: Props) {
   })
 
   const reativar = useMutation({
-    mutationFn: (setor: Setor) =>
-      cadastroClient.atualizarSetor(ctx, {
+    mutationFn: async (setor: Setor) => {
+      const res = await cadastroClient.atualizarSetor(ctx, {
         id: setor.id,
         is_active: true,
         updated_at: setor.updated_at,
-      }),
+      })
+      if (!res.success) {
+        throw new Error(res.message)
+      }
+      return res
+    },
     onSuccess: () => {
       toast.success('Reativado!')
       invalidar()
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao reativar setor.')
     },
   })
 

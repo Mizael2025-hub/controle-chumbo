@@ -1,7 +1,7 @@
 import { z } from 'zod'
+import { updatedAtSchema } from '@/validations/shared/updated-at-schema'
 
 const monteIdSchema = z.string().uuid('Identificador do monte inválido')
-const updatedAtSchema = z.string().datetime('Timestamp de controle obrigatório')
 
 export const reservarMonteSchema = z.object({
   monte_id: monteIdSchema,

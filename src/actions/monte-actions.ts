@@ -28,6 +28,11 @@ async function getContexto() {
   return { userId: ctx.user.id, role: ctx.role as UsuarioRole }
 }
 
+function mensagemValidacao(errors: Record<string, string[] | undefined>): string {
+  const primeiro = Object.values(errors).flat()[0]
+  return primeiro ?? 'Dados inválidos.'
+}
+
 function handleError<T = void>(error: unknown): ActionResponse<T> {
   if (error instanceof AppError) return { success: false, message: error.message }
   console.error('[monteAction]', error)
@@ -38,7 +43,8 @@ export async function reservarMonteAction(rawData: unknown): Promise<ActionRespo
   try {
     const parsed = reservarMonteSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.reservarMonte(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
@@ -52,7 +58,8 @@ export async function cancelarReservaMonteAction(rawData: unknown): Promise<Acti
   try {
     const parsed = cancelarReservaMonteSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.cancelarReservaMonte(ctx, parsed.data, await getMonteRepository())
@@ -66,7 +73,8 @@ export async function baixaMonteAction(rawData: unknown): Promise<ActionResponse
   try {
     const parsed = baixaMonteSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.baixaMonte(ctx, parsed.data, await getMonteRepository(), await getDestinoSaidaRepository())
@@ -80,7 +88,8 @@ export async function moverMonteSetorAction(rawData: unknown): Promise<ActionRes
   try {
     const parsed = moverMonteSetorSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.moverMonteParaSetor(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
@@ -96,7 +105,8 @@ export async function devolverMonteAlmoxarifadoAction(
   try {
     const parsed = devolverMonteAlmoxarifadoSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.devolverMonteAlmoxarifado(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
@@ -112,7 +122,8 @@ export async function listarHistoricoMonteAction(
   try {
     const parsed = historicoMonteSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.listarHistoricoMonte(ctx, parsed.data.monte_id, await getMonteRepository(), await getDestinoSaidaRepository())
@@ -126,7 +137,8 @@ export async function trocarPosicaoMonteAction(rawData: unknown): Promise<Action
   try {
     const parsed = trocarPosicaoMonteSchema.safeParse(rawData)
     if (!parsed.success) {
-      return { success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors }
+      const fieldErrors = parsed.error.flatten().fieldErrors
+      return { success: false, message: mensagemValidacao(fieldErrors), errors: fieldErrors }
     }
     const ctx = await getContexto()
     const data = await monteService.trocarPosicaoMonte(ctx, parsed.data, await getMonteRepository())
