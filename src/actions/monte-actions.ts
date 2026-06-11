@@ -48,8 +48,14 @@ export async function reservarMonteAction(rawData: unknown): Promise<ActionRespo
     }
     const ctx = await getContexto()
     const data = await monteService.reservarMonte(ctx, parsed.data, await getMonteRepository(), await getSetorRepository())
+    // #region agent log
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'46d402'},body:JSON.stringify({sessionId:'46d402',location:'monte-actions.ts:reservar',message:'Reserva persistida',data:{monteId:data.id,status:data.status,setorReservaId:data.setor_reserva_id,reservadoPara:data.reservado_para},timestamp:Date.now(),hypothesisId:'H2',runId:'pre-fix'})}).catch(()=>{});
+    // #endregion
     return { success: true, data, message: 'Reserva registrada com sucesso!' }
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'46d402'},body:JSON.stringify({sessionId:'46d402',location:'monte-actions.ts:reservar',message:'Reserva falhou',data:{erro:error instanceof Error?error.message:'unknown'},timestamp:Date.now(),hypothesisId:'H2',runId:'pre-fix'})}).catch(()=>{});
+    // #endregion
     return handleError(error)
   }
 }

@@ -10,7 +10,8 @@ import { formatarKg, formatarNumeroPtBr } from '@/lib/utils/format-number'
 import type { Monte } from '@/repositories/estoque-repository'
 
 const BORDA_RESERVA =
-  'border-4 border-blue-700 dark:border-blue-400 shadow-[0_0_0_1px_rgba(29,78,216,0.35)]'
+  'border-4 border-blue-700 dark:border-blue-400 shadow-[0_0_0_1px_rgba(29,78,216,0.35)] ring-2 ring-inset ring-blue-600/50 dark:ring-blue-300/40'
+const FUNDO_RESERVA = 'brightness-[0.92] saturate-90'
 const BORDA_MOVIDO = 'border-4 border-yellow-400 dark:border-yellow-500'
 const BORDA_PADRAO = 'border-2 border-black/10 dark:border-white/10'
 
@@ -91,6 +92,7 @@ export function EstoqueCelulaMonte({
 
   const status = monte.status as StatusMonte
   const consumido = status === STATUS_MONTE.CONSUMIDO
+  const reservado = !consumido && (status === STATUS_MONTE.RESERVADO || monteTemReservaAtiva(monte))
   const corFundo = consumido
     ? ''
     : isChaveCorLiga(chaveCorLiga)
@@ -129,7 +131,7 @@ export function EstoqueCelulaMonte({
       onClick={clicavel ? handleClick : undefined}
       aria-pressed={selecionavel ? selecionado : undefined}
       data-selecionado={selecionado ? 'true' : 'false'}
-      className={`apple-pressable min-h-[72px] w-full rounded-lg p-2 text-left flex flex-col justify-between box-border overflow-visible ${corFundo} ${classesEstadoVisual(monte, status)} ${
+      className={`apple-pressable min-h-[72px] w-full rounded-lg p-2 text-left flex flex-col justify-between box-border overflow-visible ${corFundo} ${reservado ? FUNDO_RESERVA : ''} ${classesEstadoVisual(monte, status)} ${
         selecionado ? CLASSES_CELULA_SELECIONADA : ''
       } ${
         consumido

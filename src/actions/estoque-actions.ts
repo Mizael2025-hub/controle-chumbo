@@ -25,8 +25,19 @@ export async function listarVisaoEstoqueAction(): Promise<
   try {
     const ctx = await getContexto()
     const data = await estoqueService.listarVisaoEstoque(ctx, await getEstoqueRepository(), await getSetorRepository())
+    const reservados = data.ligas.flatMap((liga) =>
+      liga.lotes.flatMap((lote) =>
+        lote.montes.filter((m) => m.status === 'RESERVADO' || Boolean(m.setor_reserva_id))
+      )
+    ).length
+    // #region agent log
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'46d402'},body:JSON.stringify({sessionId:'46d402',location:'estoque-actions.ts:listar',message:'Visão estoque carregada',data:{ligas:data.ligas.length,montesReservados:reservados,dataSource:process.env.DATA_SOURCE},timestamp:Date.now(),hypothesisId:'H3',runId:'pre-fix'})}).catch(()=>{});
+    // #endregion
     return { success: true, data }
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'46d402'},body:JSON.stringify({sessionId:'46d402',location:'estoque-actions.ts:listar',message:'Visão estoque falhou',data:{erro:error instanceof Error?error.message:'unknown',dataSource:process.env.DATA_SOURCE},timestamp:Date.now(),hypothesisId:'H3',runId:'pre-fix'})}).catch(()=>{});
+    // #endregion
     return handleError(error)
   }
 }

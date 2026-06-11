@@ -67,7 +67,12 @@ export function RelatoriosView({ ctx }: Props) {
     queryKey: ['relatorio', { aba, de, ate }],
     queryFn: async () => {
       const res = await relatorioClient.consultar(ctx, { aba, de, ate, setor: '', destino: '', maquina: '', operador: '', liga: '', turno: '' })
-      if (!res.success) throw new Error(res.message)
+      if (!res.success) {
+        // #region agent log
+        fetch('http://127.0.0.1:7622/ingest/84850b89-18d7-41bb-9510-1c5a775fc6b2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'46d402'},body:JSON.stringify({sessionId:'46d402',location:'relatorios-view.tsx:queryFn',message:'Consulta relatório falhou no client',data:{aba,de,ate,message:res.message},timestamp:Date.now(),hypothesisId:'H1',runId:'pre-fix'})}).catch(()=>{});
+        // #endregion
+        throw new Error(res.message)
+      }
       return res.data
     },
   })

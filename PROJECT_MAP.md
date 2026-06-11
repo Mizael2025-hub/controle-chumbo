@@ -6,8 +6,8 @@
 
 ## Informações do Projeto
 
-- **Versão atual:** 0.14.2
-- **Última atualização deste mapa:** 2026-06-11 (Fix sort_order cadastro + perf + grants Supabase)
+- **Versão atual:** 0.14.3
+- **Última atualização deste mapa:** 2026-06-11 (Fix pós-migração: reserva/cancelar menu, visual reservado, grants authenticated)
 - **DATA_SOURCE atual:** supabase (produção remota `ykuxfwxzizhrrgdmkvbk`)
 - **Stack:** Next.js 16 + Dexie (local) | Supabase (produção) + Tailwind v4 + Design System iOS
 
@@ -259,7 +259,7 @@
 | Camada | Arquivo | Descrição |
 |--------|---------|-----------|
 | Reset | `supabase/scripts/reset_completo_projeto.sql` | DROP SCHEMA public (rodar uma vez no projeto reutilizado) |
-| Migrations | `supabase/migrations/202606020001` … `008` | schema core, cadastros, consumo, usuarios, triggers, RLS MVP, seed destinos |
+| Migrations | `supabase/migrations/202606020001` … `008`, `202606110001`, `202606110002` | schema core, RLS MVP, grants service_role + authenticated |
 | Types | `src/lib/supabase/database.types.ts` | Tipos Postgres (manual; regenerar após deploy) |
 | Admin | `src/lib/supabase/admin.ts` | Client service_role (server-only) |
 | Utils | `src/lib/supabase/repository-utils.ts` | Helpers mapeamento row ↔ domínio |

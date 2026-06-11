@@ -6,12 +6,11 @@
 
 ## ▶️ TAREFA ATUAL
 
-**Validar em produção** — após deploy automático Vercel: login admin → Cadastros → Setores → criar setor com campo Ordem vazio e confirmar sucesso.
-
-Checklist Vercel → Settings → Environment Variables (rebuild se alterar):
-- `DATA_SOURCE=supabase`
-- `NEXT_PUBLIC_DATA_SOURCE=supabase` (deve ser **igual** a `DATA_SOURCE`)
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
+**Validar correções pós-migração** — reproduzir fluxos em produção após deploy:
+1. Vercel: confirmar `DATA_SOURCE=supabase` e `NEXT_PUBLIC_DATA_SOURCE=supabase` (valores exatos, rebuild)
+2. Supabase: aplicar `202606110002_grants_authenticated.sql` (histórico remoto divergente — SQL manual se `db push` falhar)
+3. Estoque: reservar monte → borda azul visível → menu **Cancelar reserva** (não “Reserva”)
+4. Relatórios: abas Entradas / Saídas / Reservas / Consumo carregam sem erro
 
 ---
 
@@ -30,6 +29,7 @@ Checklist Vercel → Settings → Environment Variables (rebuild se alterar):
 
 | Data | Tarefa | Arquivos |
 |---|---|---|
+| 2026-06-11 | Fix pós-migração: cancelar reserva no menu, visual reservado, grants authenticated, debug relatório/estoque | monte-elegivel-operacao.ts, saida-acoes-painel.tsx, estoque-celula-monte.tsx, relatorio/estoque/monte-actions.ts, relatorios-view.tsx, 202606110002_grants_authenticated.sql, TASKS.md, PROJECT_MAP.md |
 | 2026-06-11 | Fix sort_order setor + perf middleware/Dexie + grants service_role | format-number.ts, cadastro-actions.ts, cadastro-repository.supabase.ts, repository-utils.ts, cadastro-client.ts, middleware.ts, 202606110001_grants_service_role.sql, TASKS.md, PROJECT_MAP.md |
 | 2026-06-09 | Fix cadastro setor + performance auth/debug | get-session-context.ts, get-user.ts, get-user-role.ts, *-actions.ts, setores-panel.tsx, cadastro-service.ts, cadastro-actions.ts, agent-log.ts, layout.tsx, middleware.ts, TASKS.md, PROJECT_MAP.md |
 | 2026-06-09 | Auditoria Supabase + CI/CD GitHub/Vercel | supabase/migrations/202606090001_security_functions.sql, .gitignore, TASKS.md, PROJECT_MAP.md |

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Bookmark,
+  BookmarkX,
   History,
   LogOut,
   PackageMinus,
@@ -59,6 +60,7 @@ type ModalAcao = TipoOperacaoSaida | null
 
 const LABELS_ACAO: Record<TipoOperacaoSaida, string> = {
   reserva: 'Reserva',
+  cancelar_reserva: 'Cancelar reserva',
   mover_setor: 'Mover para setor',
   liberar_setor: 'Liberar para setor',
   liberar_baixar: 'Liberar / Baixar',
@@ -67,6 +69,7 @@ const LABELS_ACAO: Record<TipoOperacaoSaida, string> = {
 
 const ICONES_ACAO: Record<TipoOperacaoSaida, typeof Bookmark> = {
   reserva: Bookmark,
+  cancelar_reserva: BookmarkX,
   mover_setor: Truck,
   liberar_setor: Warehouse,
   liberar_baixar: LogOut,
@@ -139,6 +142,17 @@ export function SaidaAcoesPainel({
             monte_id: monte.id,
             setor_reserva_id: setorId,
             reservado_para: obs || undefined,
+            updated_at: monte.updated_at,
+          })
+          if (!res.success) throw new Error(res.message)
+        }
+        return
+      }
+
+      if (acao === 'cancelar_reserva') {
+        for (const { monte } of elegiveis) {
+          const res = await monteClient.cancelarReserva(ctx, {
+            monte_id: monte.id,
             updated_at: monte.updated_at,
           })
           if (!res.success) throw new Error(res.message)
@@ -279,13 +293,17 @@ export function SaidaAcoesPainel({
     // #endregion
   }, [modal, linhas.length])
 
-  const acoes: TipoOperacaoSaida[] = [
-    'reserva',
-    'mover_setor',
-    'liberar_setor',
-    'liberar_baixar',
-    'venda_direta',
-  ]
+  const acoes = useMemo(() => {
+    const lista: TipoOperacaoSaida[] = []
+    if (linhas.some((l) => monteElegivelOperacao(l.monte, 'cancelar_reserva'))) {
+      lista.push('cancelar_reserva')
+    }
+    if (linhas.some((l) => monteElegivelOperacao(l.monte, 'reserva'))) {
+      lista.push('reserva')
+    }
+    lista.push('mover_setor', 'liberar_setor', 'liberar_baixar', 'venda_direta')
+    return lista
+  }, [linhas])
 
   return (
     <>
@@ -461,6 +479,13 @@ export function SaidaAcoesPainel({
               </p>
             )}
 
+            {modal === 'cancelar_reserva' && (
+              <p className="text-sm text-zinc-500 mb-3">
+                Os montes voltarão ao estoque disponível. {linhasElegiveis.length} monte(s)
+                elegível(is).
+              </p>
+            )}
+
             {modal === 'mover_setor' && linhasElegiveis.length === 1 && barrasMover && (
               <p className="text-sm mb-3">
                 Total: {formatarNumeroPtBr(Number.parseInt(barrasMover, 10) || 0)} barras ·{' '}
@@ -474,7 +499,11 @@ export function SaidaAcoesPainel({
               </p>
             )}
 
-            {totais.barras > 0 && modal !== 'venda_direta' && modal !== 'reserva' && modal !== 'mover_setor' && (
+            {totais.barras > 0 &&
+              modal !== 'venda_direta' &&
+              modal !== 'reserva' &&
+              modal !== 'cancelar_reserva' &&
+              modal !== 'mover_setor' && (
               <p className="text-sm mb-3">
                 Total: {formatarNumeroPtBr(totais.barras)} barras · {formatarKg(totais.peso)}
               </p>

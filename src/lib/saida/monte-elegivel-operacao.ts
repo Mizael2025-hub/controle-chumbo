@@ -3,6 +3,7 @@ import type { Monte } from '@/repositories/estoque-repository'
 
 export type TipoOperacaoSaida =
   | 'reserva'
+  | 'cancelar_reserva'
   | 'mover_setor'
   | 'liberar_setor'
   | 'liberar_baixar'
@@ -10,6 +11,11 @@ export type TipoOperacaoSaida =
 
 export function monteElegivelOperacao(monte: Monte, operacao: TipoOperacaoSaida): boolean {
   if (monteEstaConsumido(monte) || monte.barras_atuais <= 0) return false
+
+  if (operacao === 'cancelar_reserva') {
+    if (monte.localizacao !== 'almoxarifado') return false
+    return monteTemReservaAtiva(monte)
+  }
 
   if (operacao === 'mover_setor' || operacao === 'reserva') {
     if (monte.localizacao !== 'almoxarifado') return false
